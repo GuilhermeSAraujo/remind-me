@@ -1,0 +1,29 @@
+{
+  "name": "remind-me",
+  "version": "0.0.1-alpha",
+  "description": "Bot to schedule tasks and reminders",
+  "license": "ISC",
+  "author": "GuilhermeSAraujo",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node --loader tsx src/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@hono/node-server": "^1.13.7",
+    "@t3-oss/env-core": "^0.13.10",
+    "cron": "^4.4.0",
+    "hono": "^4.11.4",
+    "mongoose": "^9.1.4",
+    "qrcode-terminal": "^0.12.0",
+    "zod": "^4.3.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/qrcode-terminal": "^0.12.2",
+    "tsx": "^4.0.0"
+  }
+}
