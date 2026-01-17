@@ -8,6 +8,7 @@ import {
   type UserData,
 } from "./whatsApp";
 import { generateContent } from "./ai";
+import { PROMPT_CLASSIFY_MESSAGE_INTENT } from "./ai/consts";
 import { scheduleReminder } from "./reminder";
 import { startSession } from "./whatsApp/config";
 import "./db";
@@ -32,18 +33,7 @@ app.post("/message", extractUserData, async (c) => {
 
   await reactMessage(userData.messageId, "⏳");
 
-  const messageIntent = await generateContent(`
-      You are a helpful assistant that can help with reminders via whatsapp chat.
-      You are given a message from a user and you need to respond to them based on the message.
-      The user message is: ${body.body}
-
-      Classify if this message is requiring a reminder to be created.
-
-      Respond with a plain text message containing only true or false.
-
-      Example: "Me lembre de comprar pão" -> true
-      Example: "O que é o que você faz?" -> false
-    `);
+  const messageIntent = await generateContent(PROMPT_CLASSIFY_MESSAGE_INTENT(body.body));
 
   const shouldScheduleReminder = messageIntent === "true";
 
