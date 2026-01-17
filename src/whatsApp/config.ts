@@ -1,7 +1,7 @@
 import { env } from "../env.js";
 
 export const CONFIG = {
-  API_BASE_URL: "http://localhost:21465",
+  API_BASE_URL: env.WPPCONNECT_API_URL,
   SESSION_NAME: "remind-me-auto",
 } as const;
 
