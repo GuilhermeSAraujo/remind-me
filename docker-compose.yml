@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   remind-bot-api:
     container_name: remind-bot-api
@@ -22,6 +20,5 @@ services:
 
 networks:
   wppconnect-network:
-    external: true
-    name: wppconnect-network
+    driver: bridge
 
