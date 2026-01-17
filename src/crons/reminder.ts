@@ -10,7 +10,11 @@ export async function triggerReminders() {
         scheduledTime: { $lte: now }
     });
 
-    if (reminders.length === 0) { return }
+    if (reminders.length === 0) {
+        const totalReminders = await Reminder.countDocuments({});
+        console.log(`[CRON] Ran successfully, no reminders to send`, { totalReminders });
+        return
+    }
 
     console.log(`[CRON] Found ${reminders.length} reminders to send`);
 

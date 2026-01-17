@@ -1,0 +1,5 @@
+- Chat session -> keep conversation ✅
+- Max of 3 reminders a day/user
+- Delete reminder
+- If 429 or 503 google api -> alternative format to remember: "Me lembre de xxxx às 13:00 hoje" "Me lembre de xxxx às 13:00 dia DD/MM" 
+- Reminders only for work days/weekends, how to deal with that?

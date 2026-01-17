@@ -2,18 +2,14 @@ import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import {
   reactMessage,
-  sendMessage,
   extractUserData,
   type MessagePayload,
   type UserData,
 } from "./whatsApp";
-import { generateContent } from "./ai";
-import { PROMPT_CLASSIFY_MESSAGE_INTENT } from "./ai/consts";
-import { scheduleReminder, listReminders, deleteReminder } from "./reminder";
+import { processMessage } from "./whatsApp/processMessage";
 import { startSession } from "./whatsApp/config";
 import "./db";
 import "./crons";
-import { HELP_MESSAGE } from "./whatsApp/consts";
 
 type Variables = {
   messageBody: MessagePayload;
@@ -34,36 +30,16 @@ app.post("/message", extractUserData, async (c) => {
 
   await reactMessage(userData.messageId, "⏳");
 
-  const messageIntent = await generateContent(PROMPT_CLASSIFY_MESSAGE_INTENT(body.body)) as "reminder" | "list_reminders" | "delete_reminder" | "help";
-
-  switch (messageIntent) {
-    case "reminder":
-      await scheduleReminder({
-        userData,
-        message: body.body,
-      });
-      await reactMessage(userData.messageId, "✅");
-      break;
-
-    case "list_reminders":
-      await listReminders({ userData });
-      await reactMessage(userData.messageId, "📋");
-      break;
-
-    case "delete_reminder":
-      await deleteReminder({ userData });
-      await reactMessage(userData.messageId, "⚠");
-      break;
-
-    case "help":
-    default:
-      await sendMessage({
-        phone: userData.phoneNumber,
-        message: HELP_MESSAGE,
-      });
-      await reactMessage(userData.messageId, "ℹ️");
-      break;
+  if (body.body?.startsWith("/")) {
+    console.log("Command received", body.body);
+    return c.json({
+      success: true,
+      message: "Command received",
+      data: body,
+    });
   }
+
+  await processMessage(body, userData);
 
 
   return c.json({
@@ -74,7 +50,6 @@ app.post("/message", extractUserData, async (c) => {
 });
 
 app.get("/", (c) => {
-  console.log("Health check endpoint");
   return c.json({
     status: "ok",
     message: "Remind Me API is running",

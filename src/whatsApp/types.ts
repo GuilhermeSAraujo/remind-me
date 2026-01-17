@@ -9,6 +9,7 @@ export interface MessagePayload {
   sender: MessageSender;
   body: string;
   urlcode?: string;
+  quotedMsgId?: string;
 }
 
 export interface ApiResponse {

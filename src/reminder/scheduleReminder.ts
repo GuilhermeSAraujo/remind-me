@@ -1,4 +1,4 @@
-import { generateContent } from "../ai";
+import { generateContentWithContext } from "../ai";
 import { PROMPT_EXTRACT_REMINDER_DATA } from "../ai/consts";
 import { Reminder } from "../db/schemas";
 import { UserData } from "../middlewares";
@@ -7,16 +7,16 @@ import { sendMessage } from "../whatsApp";
 export async function scheduleReminder({
     userData,
     message,
+    messageId,
 }: {
     userData: UserData;
     message: string;
+    messageId: string;
 }) {
-    const reminderData = await extractReminderData(message);
-
-    // save on database
-    // mongoose
+    const reminderData = await extractReminderData(message, userData.phoneNumber);
 
     await Reminder.create({
+        messageId: messageId,
         userPhoneNumber: userData.phoneNumber,
         title: reminderData.title.charAt(0).toUpperCase() + reminderData.title.slice(1),
         scheduledTime: new Date(reminderData.date),
@@ -48,13 +48,14 @@ interface ReminderData {
     recurrence_interval: number;
 }
 
-async function extractReminderData(message: string): Promise<ReminderData> {
-    let reminderData = await generateContent(
+async function extractReminderData(message: string, userId: string): Promise<ReminderData> {
+    let reminderData = await generateContentWithContext(
+        userId,
         PROMPT_EXTRACT_REMINDER_DATA(message, new Date().toISOString())
     );
 
     reminderData = reminderData.replace(/```json/g, "").replace(/```/g, "");
 
-    return JSON.parse(reminderData);
+    return JSON.parse(reminderData) as ReminderData;
 }
 

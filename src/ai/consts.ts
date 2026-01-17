@@ -26,7 +26,6 @@ Examples:
 `;
 
 export const PROMPT_EXTRACT_REMINDER_DATA = (message: string, currentDateTime: string) => `
-You are a helpful assistant that can help with reminders via whatsapp chat.
 You are given a message from a user and you need to EXTRACT the reminder data from the message.
 The user message is: ${message}
 Current date and time is: ${currentDateTime}
@@ -56,4 +55,72 @@ Example: Me lembre de comprar pão todos os dias as 14h
     recurrence_interval: 1,
 }
 `;
+
+/**
+ * List of smallest, most cost-effective Google AI models
+ * Optimized for low token consumption and affordability
+ * (Verified against actual available models via API - Jan 2026)
+ * 
+ * PRICING REFERENCE (per 1M tokens):
+ * - Gemini 2.0 Flash-Lite: $0.075 input / $0.30 output (CHEAPEST!)
+ * - Gemini 2.5 Flash-Lite: $0.10 input / $0.40 output
+ * - Gemini 2.5 Flash: $0.30 input / $2.50 output
+ * - Gemma models: Free tier with rate limits
+ */
+export const SMALL_CHEAP_MODELS = {
+    /** 
+     * ⭐ CHEAPEST PRODUCTION MODEL ⭐
+     * Gemini 2.0 Flash-Lite - Most affordable paid model
+     * Best for: High-volume requests, minimal cost
+     * Limits: 1M input, 8K output
+     * Cost: $0.075 input / $0.30 output per 1M tokens
+     */
+    GEMINI_2_0_FLASH_LITE: "gemini-2.0-flash-lite",
+
+    /** 
+     * Gemini 2.5 Flash-Lite - Newer generation, slightly more expensive
+     * Best for: Balance of latest features and cost
+     * Limits: 1M input, 65K output
+     * Cost: $0.10 input / $0.40 output per 1M tokens (~33% more than 2.0)
+     */
+    GEMINI_2_5_FLASH_LITE: "gemini-2.5-flash-lite",
+
+    /** 
+     * Gemini Flash-Lite Latest - Auto-updates to latest lite version
+     * Best for: Staying current with latest optimizations
+     * Limits: 1M input, 65K output
+     * Cost: Variable (follows latest lite model pricing)
+     */
+    GEMINI_FLASH_LITE_LATEST: "gemini-flash-lite-latest",
+
+    /** 
+     * Gemma 3n E2B - Ultra small model (2B parameters)
+     * Best for: Free tier usage, simple classification
+     * Limits: 8K input, 2K output, rate-limited
+     * Cost: Free tier with limits
+     */
+    GEMMA_3N_E2B: "gemma-3n-e2b-it",
+
+    /** 
+     * Gemma 3n E4B - Ultra small model (4B parameters)
+     * Best for: Free tier usage, basic tasks
+     * Limits: 8K input, 2K output, rate-limited
+     * Cost: Free tier with limits
+     */
+    GEMMA_3N_E4B: "gemma-3n-e4b-it",
+
+    /** 
+     * Gemma 3 1B - Small model (1B parameters)
+     * Best for: Free tier, better quality than 3n variants
+     * Limits: 32K input, 8K output, rate-limited
+     * Cost: Free tier with limits
+     */
+    GEMMA_3_1B: "gemma-3-1b-it",
+} as const;
+
+/** 
+ * Default model: Gemini 2.0 Flash-Lite (CHEAPEST paid option for high volume)
+ * Perfect for tons of requests with minimal cost
+ */
+export const DEFAULT_AI_MODEL = SMALL_CHEAP_MODELS.GEMINI_2_5_FLASH_LITE;
 

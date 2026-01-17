@@ -13,6 +13,7 @@ export interface IReminder extends Document {
     userPhoneNumber: string;
     title: string;
     scheduledTime: Date;
+    messageId: string;
     recurrence_type: "daily" | "weekly" | "monthly" | "yearly" | "none";
     recurrence_interval: number;
     status: "pending" | "sent" | "cancelled";
@@ -55,6 +56,10 @@ const ReminderSchema = new Schema<IReminder>(
         },
         scheduledTime: {
             type: Date,
+            required: true,
+        },
+        messageId: {
+            type: String,
             required: true,
         },
         recurrence_type: {
