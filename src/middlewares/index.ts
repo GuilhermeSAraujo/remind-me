@@ -20,8 +20,6 @@ export async function extractUserData(c: Context, next: Next) {
 
     c.set("messageBody", body);
 
-    console.log("Body", body);
-
     let user: IUser | null = null;
     if (body.event === "onmessage" && body.sender) {
 
