@@ -18,17 +18,19 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
     const containsList = /lista|mostra|ver/.test(firstThreeWords);
     const containsDelete = /apaga|deleta|remove/.test(firstThreeWords);
 
-    const messageIntent = containsReminder ? "reminder" : containsList ? "list_reminders" : containsDelete ? "delete_reminder" : "help";
+    let messageIntent = containsReminder ? "reminder" : containsList ? "list_reminders" : containsDelete ? "delete_reminder" : null;
 
 
     console.log({ containsReminder, containsList, containsDelete });
     // return;
 
     try {
-        // const messageIntent = await generateContentWithContext(
-        //     userData.phoneNumber,
-        //     PROMPT_CLASSIFY_MESSAGE_INTENT(body.body)
-        // ) as "reminder" | "list_reminders" | "delete_reminder" | "help";
+        if (!messageIntent) {
+            messageIntent = await generateContentWithContext(
+                userData.phoneNumber,
+                PROMPT_CLASSIFY_MESSAGE_INTENT(body.body)
+            ) as "reminder" | "list_reminders" | "delete_reminder" | "help";
+        }
 
         switch (messageIntent) {
             case "reminder":
