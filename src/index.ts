@@ -9,10 +9,11 @@ import {
 } from "./whatsApp";
 import { generateContent } from "./ai";
 import { PROMPT_CLASSIFY_MESSAGE_INTENT } from "./ai/consts";
-import { scheduleReminder } from "./reminder";
+import { scheduleReminder, listReminders, deleteReminder } from "./reminder";
 import { startSession } from "./whatsApp/config";
 import "./db";
 import "./crons";
+import { HELP_MESSAGE } from "./whatsApp/consts";
 
 type Variables = {
   messageBody: MessagePayload;
@@ -33,37 +34,35 @@ app.post("/message", extractUserData, async (c) => {
 
   await reactMessage(userData.messageId, "⏳");
 
-  const messageIntent = await generateContent(PROMPT_CLASSIFY_MESSAGE_INTENT(body.body));
+  const messageIntent = await generateContent(PROMPT_CLASSIFY_MESSAGE_INTENT(body.body)) as "reminder" | "list_reminders" | "delete_reminder" | "help";
 
-  const shouldScheduleReminder = messageIntent === "true";
+  switch (messageIntent) {
+    case "reminder":
+      await scheduleReminder({
+        userData,
+        message: body.body,
+      });
+      await reactMessage(userData.messageId, "✅");
+      break;
 
-  if (shouldScheduleReminder) {
-    await scheduleReminder({
-      userData,
-      message: body.body,
-    });
-    await reactMessage(userData.messageId, "✅");
-  } else {
-    await sendMessage({
-      phone: userData.phoneNumber,
-      message: `Olá! Sou o bot de lembretes. 📝
+    case "list_reminders":
+      await listReminders({ userData });
+      await reactMessage(userData.messageId, "📋");
+      break;
 
-Para criar um lembrete, envie uma mensagem como:
+    case "delete_reminder":
+      await deleteReminder({ userData });
+      await reactMessage(userData.messageId, "⚠");
+      break;
 
-• "Me lembre de comprar pão às 14h"
-• "Lembrete para tomar água todos os dias às 9h"
-• "Lembrar de pagar conta toda semana às 10h"
-• "Me lembre de fazer backup todo mês às 15h"
-
-Exemplos de recorrência:
-✓ Sem repetição: "às 14h", "amanhã às 10h"
-✓ Diário: "todos os dias", "diariamente"
-✓ Semanal: "toda semana", "semanalmente"
-✓ Mensal: "todo mês", "mensalmente"
-✓ Anual: "todo ano", "anualmente"
-`,
-    });
-    await reactMessage(userData.messageId, "ℹ️");
+    case "help":
+    default:
+      await sendMessage({
+        phone: userData.phoneNumber,
+        message: HELP_MESSAGE,
+      });
+      await reactMessage(userData.messageId, "ℹ️");
+      break;
   }
 
 

@@ -1,14 +1,28 @@
 export const PROMPT_CLASSIFY_MESSAGE_INTENT = (message: string) => `
 You are a helpful assistant that can help with reminders via whatsapp chat.
-You are given a message from a user and you need to respond to them based on the message.
+You are given a message from a user and you need to classify the intent of their message.
 The user message is: ${message}
 
-Classify if this message is requiring a reminder to be created.
+Classify the message into one of these intents:
+- "reminder": User wants to create a new reminder
+- "list_reminders": User wants to see their existing reminders
+- "delete_reminder": User wants to delete a reminder
+- "help": User needs help or the message doesn't fit other categories
 
-Respond with a plain text message containing only true or false.
+Respond with ONLY one of these exact words: reminder, list_reminders, delete_reminder, or help
 
-Example: "Me lembre de comprar pão" -> true
-Example: "O que é o que você faz?" -> false
+Examples:
+"Me lembre de comprar pão às 14h" -> reminder
+"Lembrete para tomar água amanhã" -> reminder
+"Quais são meus lembretes?" -> list_reminders
+"Lista meus lembretes" -> list_reminders
+"Mostrar lembretes" -> list_reminders
+"Ver meus lembretes" -> list_reminders
+"Apagar lembrete" -> delete_reminder
+"Deletar lembrete de comprar pão" -> delete_reminder
+"Remover lembrete" -> delete_reminder
+"O que você faz?" -> help
+"Ajuda" -> help
 `;
 
 export const PROMPT_EXTRACT_REMINDER_DATA = (message: string, currentDateTime: string) => `
