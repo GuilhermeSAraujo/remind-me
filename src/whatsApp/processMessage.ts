@@ -3,8 +3,9 @@ import { PROMPT_CLASSIFY_MESSAGE_INTENT } from "../ai/consts";
 import { scheduleReminder, listReminders, deleteReminder } from "../reminder";
 import { reactMessage, sendMessage, type UserData } from "./index";
 import type { MessagePayload } from "./types";
-import { HELP_MESSAGE, RATE_LIMIT_MESSAGE, RATE_LIMIT_EXCEEDED_MESSAGE } from "./consts";
+import { HELP_MESSAGE, RATE_LIMIT_MESSAGE, RATE_LIMIT_EXCEEDED_MESSAGE, FREE_USER_REMINDER_LIMIT_MESSAGE } from "./consts";
 import { checkRateLimit, getUserUsageStats } from "../rateLimit";
+import { User, Reminder } from "../db/schemas";
 
 export async function processMessage(body: MessagePayload, userData: UserData) {
     const message = body.body.trim();
@@ -48,6 +49,25 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
 
         switch (messageIntent) {
             case "reminder":
+                // Check if free user has reached the 5 pending reminders limit
+                const user = await User.findOne({ phoneNumber: userData.phoneNumber });
+
+                if (!user?.isPremium) {
+                    const pendingRemindersCount = await Reminder.countDocuments({
+                        userPhoneNumber: userData.phoneNumber,
+                        status: "pending"
+                    });
+
+                    if (pendingRemindersCount >= 5) {
+                        await sendMessage({
+                            phone: userData.phoneNumber,
+                            message: FREE_USER_REMINDER_LIMIT_MESSAGE(),
+                        });
+                        await reactMessage(userData.messageId, "😢");
+                        return;
+                    }
+                }
+
                 // Check rate limit before creating reminder (uses AI extract)
                 const rateLimitCheck = await checkRateLimit(userData.phoneNumber, 'extract');
 

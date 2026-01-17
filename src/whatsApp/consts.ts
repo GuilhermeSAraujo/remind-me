@@ -36,3 +36,14 @@ export const RATE_LIMIT_EXCEEDED_MESSAGE = (resetInHours: number) =>
     `Assine o Premium e tenha acesso ilimitado!\n\n` +
     `🔗 Assine agora:\n${PREMIUM_LINK}\n\n` +
     `⏰ Seu limite será renovado em ${Math.ceil(resetInHours)} horas.`;
+
+export const FREE_USER_REMINDER_LIMIT_MESSAGE = () =>
+    `⚠️ *Limite de lembretes atingido*\n\n` +
+    `Usuários gratuitos podem ter no máximo 5 lembretes pendentes.\n\n` +
+    `Para criar um novo lembrete, você precisa:\n` +
+    `• Aguardar que algum lembrete seja enviado, ou\n` +
+    `• Deletar um lembrete existente\n\n` +
+    `✨ *Quer criar lembretes ilimitados?*\n` +
+    `Assine o plano Premium (R$ 3,90) e tenha acesso ilimitado!\n\n` +
+    `🔗 Assine agora:\n${PREMIUM_LINK}`;
+
