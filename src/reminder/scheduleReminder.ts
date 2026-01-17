@@ -51,7 +51,8 @@ interface ReminderData {
 async function extractReminderData(message: string, userId: string): Promise<ReminderData> {
     let reminderData = await generateContentWithContext(
         userId,
-        PROMPT_EXTRACT_REMINDER_DATA(message, new Date().toISOString())
+        PROMPT_EXTRACT_REMINDER_DATA(message, new Date().toISOString()),
+        'extract'
     );
 
     reminderData = reminderData.replace(/```json/g, "").replace(/```/g, "");
