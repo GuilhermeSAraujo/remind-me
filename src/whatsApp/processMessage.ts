@@ -15,7 +15,7 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
         .join(" ")
         .toLowerCase();
 
-    const containsReminder = /lembre|lembrar|lembrete|crie|cria/.test(firstThreeWords);
+    const containsReminder = /lembre|lembrar|lembrete|crie|cria|agende|agenda/.test(firstThreeWords);
     const containsList = /lista|mostra|ver/.test(firstThreeWords);
     const containsDelete = /apaga|deleta|remove/.test(firstThreeWords);
 
