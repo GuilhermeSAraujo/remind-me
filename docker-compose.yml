@@ -20,5 +20,5 @@ services:
 
 networks:
   wppconnect-network:
-    driver: bridge
+    external: true
 
