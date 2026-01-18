@@ -62,15 +62,15 @@ CURRENT_BRANCH=$(git branch --show-current)
 print_warning "Branch atual: $CURRENT_BRANCH"
 
 # Verifica se há mudanças locais
-if [[ -n $(git status -s) ]]; then
-    print_warning "Há mudanças locais não commitadas!"
-    read -p "Deseja fazer stash das mudanças? (y/n) " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        git stash
-        print_success "Mudanças em stash"
-    fi
-fi
+# if [[ -n $(git status -s) ]]; then
+#     print_warning "Há mudanças locais não commitadas!"
+#     read -p "Deseja fazer stash das mudanças? (y/n) " -n 1 -r
+#     echo
+#     if [[ $REPLY =~ ^[Yy]$ ]]; then
+#         git stash
+#         print_success "Mudanças em stash"
+#     fi
+# fi
 
 git pull origin $CURRENT_BRANCH
 print_success "Código atualizado"
@@ -105,21 +105,3 @@ print_success "Build completo"
 print_step "Iniciando containers..."
 sudo docker compose up
 print_success "Containers iniciados"
-
-echo ""
-echo "=========================================="
-echo -e "${GREEN}✓ RESTART COMPLETO FINALIZADO!${NC}"
-echo "=========================================="
-echo ""
-
-# Mostra status dos containers
-print_step "Status dos containers:"
-sudo docker-compose ps
-
-echo ""
-print_warning "Próximos passos:"
-echo "  1. Aguarde alguns segundos para os containers iniciarem"
-echo "  2. Escaneie o QR code do WhatsApp"
-echo "  3. Verifique os logs: docker-compose logs -f"
-echo ""
-

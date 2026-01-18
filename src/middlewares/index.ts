@@ -20,10 +20,14 @@ export async function extractUserData(c: Context, next: Next) {
 
     c.set("messageBody", body);
 
+    console.log('[MIDDLEWARE] Request received:', body);
+
     let user: IUser | null = null;
-    if (body.event === "onmessage" && body.sender) {
+    if (body.event === "onmessage" && body.sender && body.body) {
 
       const phoneNumber = body.sender.id.split("@")[0] || "";
+      console.log("[MIDDLEWARE] From:", body.from)
+      console.log("[MIDDLEWARE] ChatId:", body.chatId)
 
       user = await User.findOne({ phoneNumber });
 
@@ -38,20 +42,27 @@ export async function extractUserData(c: Context, next: Next) {
       };
 
       c.set("userData", userData);
+
+      // request data, type, user
+      console.log('[MIDDLEWARE] Request received:', {
+        type: body.event,
+        message: body?.body || null,
+        user: {
+          name: user?.name,
+          phoneNumber: user?.phoneNumber,
+        },
+      });
+
+      await next();
     }
 
-
-    // request data, type, user
-    console.log('[MIDDLEWARE] Request received:', {
-      type: body.event,
-      message: body?.body || null,
-      user: {
-        name: user?.name,
-        phoneNumber: user?.phoneNumber,
+    return c.json(
+      {
+        success: false,
+        message: "Invalid JSON payload",
       },
-    });
-
-    await next();
+      400
+    );
   } catch (error) {
     console.error("Error parsing message payload:", error);
     return c.json(
