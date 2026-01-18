@@ -8,7 +8,7 @@ import { checkRateLimit, getUserUsageStats } from "../rateLimit";
 import { User, Reminder } from "../db/schemas";
 
 export async function processMessage(body: MessagePayload, userData: UserData) {
-    const message = body.body.trim();
+    const message = body.body?.trim();
 
     const firstThreeWords = message
         .split(" ")
