@@ -18,7 +18,7 @@ export async function sendMessage(options: SendMessageOptions): Promise<boolean>
 
   console.log('[SEND MESSAGE] Sending message to:', options);
 
-  if (phone.startsWith("5531")) {
+  if (phone.startsWith("5531") || phone.length === 12) {
     isLid = false;
   }
 
