@@ -12,7 +12,7 @@ Se quiser deletar um lembrete:
 - Responda a mensagem do lembrete que deseja deletar com a palavra "Apagar"
 `;
 
-const PREMIUM_LINK = "https://app.abacatepay.com/pay/bill_XkS2hN36mnEwwsT4rzewZ2DJ";
+const PREMIUM_LINK = "https://app.abacatepay.com/pay/bill_sRuYnhgdJAkWeW3YgptBLpUe";
 
 export const RATE_LIMIT_MESSAGE = (remaining: number, resetInHours: number) => {
     if (remaining === 0) {
