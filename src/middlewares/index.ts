@@ -33,10 +33,12 @@ export async function extractUserData(c: Context, next: Next) {
       if (!user) {
         const userExistWithWrongPhoneNumber = await User.findOne({ name: body.sender.name });
         if (userExistWithWrongPhoneNumber) {
+          const updatedReminders = await Reminder.updateMany({ userPhoneNumber: userExistWithWrongPhoneNumber.phoneNumber }, { userPhoneNumber: from });
+          console.log('[MIDDLEWARE] FIX: Updated reminders:', updatedReminders);
+
           userExistWithWrongPhoneNumber.phoneNumber = from;
           await userExistWithWrongPhoneNumber.save();
-
-          await Reminder.updateMany({ userPhoneNumber: userExistWithWrongPhoneNumber.phoneNumber }, { userPhoneNumber: from });
+          console.log('[MIDDLEWARE] FIX: Updated user:', userExistWithWrongPhoneNumber);
         } else {
           user = await User.create({ phoneNumber: from, name: body.sender.name });
         }
