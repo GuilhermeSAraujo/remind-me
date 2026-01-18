@@ -22,8 +22,11 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
 
     let messageIntent = containsReminder ? "reminder" : containsList ? "list_reminders" : containsDelete ? "delete_reminder" : null;
 
-
-    console.log({ containsReminder, containsList, containsDelete, messageIntent });
+    if (messageIntent) {
+        console.log("Message intent caught by regex", messageIntent);
+    } else {
+        console.log("Message intent not caught by regex", firstThreeWords);
+    }
 
     try {
         // If intent is not determined by regex, we need to use AI (classify operation)
