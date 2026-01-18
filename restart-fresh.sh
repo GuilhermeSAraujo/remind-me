@@ -98,12 +98,12 @@ fi
 
 # 9. Rebuild completo
 print_step "Rebuilding containers..."
-sudo docker-compose build --no-cache
+sudo docker compose build --no-cache
 print_success "Build completo"
 
 # 10. Inicia tudo
 print_step "Iniciando containers..."
-sudo docker-compose up -d
+sudo docker compose up
 print_success "Containers iniciados"
 
 echo ""
