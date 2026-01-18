@@ -46,13 +46,13 @@ print_success "Containers removidos"
 
 # 3. Remove imagens relacionadas
 print_step "Removendo imagens Docker antigas..."
-docker rmi remind-bot-api wpp-interface-api 2>/dev/null || true
-docker rmi $(docker images -f "dangling=true" -q) 2>/dev/null || true
+sudo docker rmi remind-bot-api wpp-interface-api 2>/dev/null || true
+sudo docker rmi $(sudo docker images -f "dangling=true" -q) 2>/dev/null || true
 print_success "Imagens removidas"
 
 # 4. Limpa volumes não utilizados
 print_step "Limpando volumes não utilizados..."
-docker volume prune -f
+sudo docker volume prune -f
 print_success "Volumes limpos"
 
 # 5. Git pull
@@ -98,12 +98,12 @@ fi
 
 # 9. Rebuild completo
 print_step "Rebuilding containers..."
-docker-compose build --no-cache
+sudo docker-compose build --no-cache
 print_success "Build completo"
 
 # 10. Inicia tudo
 print_step "Iniciando containers..."
-docker-compose up -d
+sudo docker-compose up -d
 print_success "Containers iniciados"
 
 echo ""
@@ -114,7 +114,7 @@ echo ""
 
 # Mostra status dos containers
 print_step "Status dos containers:"
-docker-compose ps
+sudo docker-compose ps
 
 echo ""
 print_warning "Próximos passos:"
