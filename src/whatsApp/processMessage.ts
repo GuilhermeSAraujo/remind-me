@@ -52,6 +52,11 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
         }
 
         switch (messageIntent) {
+            case "list_reminders":
+                await listReminders({ userData });
+                await reactMessage(userData.messageId, "📋");
+                break;
+
             case "reminder":
                 // Check if free user has reached the 5 pending reminders limit
                 const user = await User.findOne({ phoneNumber: userData.phoneNumber });
@@ -104,11 +109,6 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                         message: warningMessage,
                     });
                 }
-                break;
-
-            case "list_reminders":
-                await listReminders({ userData });
-                await reactMessage(userData.messageId, "📋");
                 break;
 
             case "delete_reminder":
