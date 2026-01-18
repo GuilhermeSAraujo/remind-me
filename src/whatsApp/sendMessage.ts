@@ -14,9 +14,13 @@ export interface SendMessageOptions {
  * @returns Promise<boolean> - True if message was sent successfully
  */
 export async function sendMessage(options: SendMessageOptions): Promise<boolean> {
-  const { phone, message, isGroup = false, isNewsletter = false, isLid = false } = options;
+  let { phone, message, isGroup = false, isNewsletter = false, isLid = true } = options;
 
   console.log('[SEND MESSAGE] Sending message to:', options);
+
+  if (phone.startsWith("5531")) {
+    isLid = false;
+  }
 
   try {
     const response = await fetch(`${CONFIG.API_BASE_URL}/api/${CONFIG.SESSION_NAME}/send-message`, {
