@@ -21,12 +21,12 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
     const containsDelete = /apaga|deleta|remove|exclui/.test(firstThreeWords);
     const containsHelp = /ajuda|help|sobre|como|boa tarde|bom dia|boa noite|tudo bem|como vai|oi|ola|olá/.test(firstThreeWords);
 
-    let messageIntent = containsReminder ? "reminder" : containsList ? "list_reminders" : containsDelete ? "delete_reminder" : containsHelp ? "help" : null;
+    let messageIntent = containsList ? "list_reminders" : containsReminder ? "reminder" : containsDelete ? "delete_reminder" : containsHelp ? "help" : null;
 
     if (messageIntent) {
-        console.log("Message intent caught by regex", messageIntent);
+        console.log("✅ Message intent caught by regex:", messageIntent);
     } else {
-        console.log("Message intent not caught by regex", firstThreeWords);
+        console.log("⚠ Message intent NOT caught by regex:", firstThreeWords);
     }
 
     try {
@@ -52,11 +52,6 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
         }
 
         switch (messageIntent) {
-            case "list_reminders":
-                await listReminders({ userData });
-                await reactMessage(userData.messageId, "📋");
-                break;
-
             case "reminder":
                 // Check if free user has reached the 5 pending reminders limit
                 const user = await User.findOne({ phoneNumber: userData.phoneNumber });
@@ -109,6 +104,11 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                         message: warningMessage,
                     });
                 }
+                break;
+
+            case "list_reminders":
+                await listReminders({ userData });
+                await reactMessage(userData.messageId, "📋");
                 break;
 
             case "delete_reminder":
