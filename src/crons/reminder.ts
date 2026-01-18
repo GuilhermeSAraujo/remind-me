@@ -1,8 +1,11 @@
 import { Reminder } from "../db/schemas";
+import { getBrazilTime } from "../utils/date";
 import { sendMessage } from "../whatsApp";
 
 export async function triggerReminders() {
-    const now = new Date();
+    const now = new Date(getBrazilTime());
+
+    console.log(`[CRON] Starting triggerReminders at: ${now}`);
 
     // Find reminders that are pending and whose scheduled time has passed
     const reminders = await Reminder.find({
@@ -51,6 +54,8 @@ export async function triggerReminders() {
     }
 
     console.log(`[CRON] Sent ${reminders.length} reminders`);
+
+    console.log(`[CRON] Ending triggerReminders at: ${getBrazilTime()}`);
 }
 
 function calculateNextScheduledTime(

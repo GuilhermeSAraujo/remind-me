@@ -2,6 +2,7 @@ import { generateContentWithContext } from "../ai";
 import { PROMPT_EXTRACT_REMINDER_DATA } from "../ai/consts";
 import { Reminder } from "../db/schemas";
 import { UserData } from "../middlewares";
+import { getBrazilTime } from "../utils/date";
 import { sendMessage } from "../whatsApp";
 
 export async function scheduleReminder({
@@ -51,7 +52,7 @@ interface ReminderData {
 async function extractReminderData(message: string, userId: string): Promise<ReminderData> {
     let reminderData = await generateContentWithContext(
         userId,
-        PROMPT_EXTRACT_REMINDER_DATA(message, new Date().toISOString()),
+        PROMPT_EXTRACT_REMINDER_DATA(message, getBrazilTime()),
         'extract'
     );
 
