@@ -43,7 +43,7 @@ export async function extractUserData(c: Context, next: Next) {
       }
 
       const userData: UserData = {
-        phoneNumber,
+        phoneNumber: from,
         name: user?.name || "",
         messageId: body.id,
       };
@@ -56,7 +56,7 @@ export async function extractUserData(c: Context, next: Next) {
         message: body?.body || null,
         user: {
           name: user?.name,
-          phoneNumber: user?.phoneNumber,
+          phoneNumber: from,
         },
       });
 
