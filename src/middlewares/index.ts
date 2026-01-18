@@ -20,8 +20,6 @@ export async function extractUserData(c: Context, next: Next) {
 
     c.set("messageBody", body);
 
-    console.log('[MIDDLEWARE] Request received:', body);
-
     let user: IUser | null = null;
     if (body.event === "onmessage" && body.sender && body.body) {
 
@@ -39,13 +37,15 @@ export async function extractUserData(c: Context, next: Next) {
           userExistWithWrongPhoneNumber.phoneNumber = from;
           await userExistWithWrongPhoneNumber.save();
           console.log('[MIDDLEWARE] FIX: Updated user:', userExistWithWrongPhoneNumber);
+
+          user = userExistWithWrongPhoneNumber;
         } else {
           user = await User.create({ phoneNumber: from, name: body.sender.name });
         }
       }
 
       const userData: UserData = {
-        phoneNumber: from,
+        phoneNumber: user?.phoneNumber || "",
         name: user?.name || "",
         messageId: body.id,
       };
@@ -58,20 +58,15 @@ export async function extractUserData(c: Context, next: Next) {
         message: body?.body || null,
         user: {
           name: user?.name,
-          phoneNumber: from,
+          phoneNumber: user?.phoneNumber || "",
         },
       });
 
       await next();
     }
 
-    return c.json(
-      {
-        success: false,
-        message: "Invalid JSON payload",
-      },
-      400
-    );
+    c.status(204);
+    return c.body(null);
   } catch (error) {
     console.error("Error parsing message payload:", error);
     return c.json(
