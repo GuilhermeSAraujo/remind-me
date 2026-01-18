@@ -19,8 +19,9 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
     const containsReminder = /lembre|lembrar|lembrete|crie|cria|agende|agenda/.test(firstThreeWords);
     const containsList = /lista|mostra|ver/.test(firstThreeWords);
     const containsDelete = /apaga|deleta|remove|exclui/.test(firstThreeWords);
+    const containsHelp = /ajuda|help|sobre|como|boa tarde|bom dia|boa noite|tudo bem|como vai|oi|ola|olá/.test(firstThreeWords);
 
-    let messageIntent = containsReminder ? "reminder" : containsList ? "list_reminders" : containsDelete ? "delete_reminder" : null;
+    let messageIntent = containsReminder ? "reminder" : containsList ? "list_reminders" : containsDelete ? "delete_reminder" : containsHelp ? "help" : null;
 
     if (messageIntent) {
         console.log("Message intent caught by regex", messageIntent);
