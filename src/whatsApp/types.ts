@@ -8,6 +8,7 @@ export interface MessagePayload {
   id: string;
   sender: MessageSender;
   body: string;
+  from: string;
   urlcode?: string;
   quotedMsgId?: string;
 }
