@@ -16,6 +16,8 @@ export interface SendMessageOptions {
 export async function sendMessage(options: SendMessageOptions): Promise<boolean> {
   const { phone, message, isGroup = false, isNewsletter = false, isLid = false } = options;
 
+  console.log('[SEND MESSAGE] Sending message to:', options);
+
   try {
     const response = await fetch(`${CONFIG.API_BASE_URL}/api/${CONFIG.SESSION_NAME}/send-message`, {
       method: "POST",

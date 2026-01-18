@@ -65,8 +65,7 @@ export async function extractUserData(c: Context, next: Next) {
       await next();
     }
 
-    c.status(204);
-    return c.body(null);
+    return c.body(null, 204);
   } catch (error) {
     console.error("Error parsing message payload:", error);
     return c.json(
