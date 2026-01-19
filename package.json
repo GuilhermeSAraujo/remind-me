@@ -7,10 +7,11 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsup src/index.ts --format esm --clean && npm run copy-assets",
+    "dev": "tsx watch src/server.ts",
+    "type-check": "tsc --noEmit",
+    "build": "npm run type-check && tsup src/server.ts --format esm --clean && npm run copy-assets",
     "copy-assets": "mkdir -p dist/assets && cp -r src/assets/* dist/assets/",
-    "start": "node dist/index.js",
+    "start": "node dist/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
