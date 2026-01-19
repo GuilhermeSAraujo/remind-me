@@ -1,10 +1,6 @@
 import { readFileSync, existsSync } from "fs";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
+import { join } from "path";
 import { CONFIG, getSessionToken } from "./client";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 export interface SendImageOptions {
     phone: string;
@@ -48,7 +44,8 @@ export async function sendImage(
     } = options;
 
     try {
-        const assetsPath = join(__dirname, "../../assets", imagePath);
+        // Em produção (bundled), process.cwd() aponta para /app e assets está em /app/dist/assets
+        const assetsPath = join(process.cwd(), "dist/assets", imagePath);
 
         if (!existsSync(assetsPath)) {
             console.error("[SEND IMAGE] 🚨 File not found:", assetsPath);
