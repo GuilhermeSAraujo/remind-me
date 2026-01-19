@@ -1,4 +1,4 @@
-import { User, IUser } from "../db/schemas";
+import { User } from "../db/schemas";
 
 // Rate limit configuration
 const RATE_LIMITS = {

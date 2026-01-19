@@ -23,7 +23,7 @@ export const RATE_LIMIT_MESSAGE = (remaining: number, resetInHours: number) => {
             `Assine o plano Premium e crie lembretes sem limites!\n\n` +
             `🔗 Conheça:\n${PREMIUM_LINK}\n\n` +
             `⏰ Seu limite será renovado em ${Math.ceil(resetInHours)} horas.`;
-    } else if (remaining <= 1) {
+    } else if (remaining <= 1 && remaining !== -1) {
         return `⚠️ *Atenção:* Você tem apenas ${remaining} ${remaining === 1 ? 'interação restante' : 'interações restantes'} nas próximas 24 horas.`;
     }
     return null;
