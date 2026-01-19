@@ -19,7 +19,7 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
     const containsReminder = /lembre|lembrar|lembrete|crie|cria|agende|agenda/.test(firstThreeWords);
     const containsList = /lista|mostra|ver/.test(firstThreeWords);
     const containsDelete = /apaga|deleta|remove|exclui/.test(firstThreeWords);
-    const containsHelp = /ajuda|help|sobre|como|boa tarde|bom dia|boa noite|tudo bem|como vai|oi|ola|olá/.test(firstThreeWords);
+    const containsHelp = /ajuda|help|sobre|como|boa tarde|bom dia|boa noite|tudo bem|como vai|oi|ola|olá|alo/.test(firstThreeWords);
 
     let messageIntent = containsList ? "list_reminders" : containsReminder ? "reminder" : containsDelete ? "delete_reminder" : containsHelp ? "help" : null;
 
