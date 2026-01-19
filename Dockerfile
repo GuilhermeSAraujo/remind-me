@@ -16,9 +16,6 @@ COPY . .
 # Build TypeScript to JavaScript
 RUN npm run build
 
-# Copy assets folder to dist directory (for images and static files)
-RUN mkdir -p dist/assets && cp -r src/assets/* dist/assets/
-
 # Remove devDependencies to reduce image size
 RUN npm prune --production
 

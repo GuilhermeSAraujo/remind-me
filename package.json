@@ -10,7 +10,7 @@
     "dev": "tsx watch src/server.ts",
     "type-check": "tsc --noEmit",
     "build": "npm run type-check && tsup src/server.ts --format esm --clean && npm run copy-assets",
-    "copy-assets": "mkdir -p dist/assets && cp -r src/assets/* dist/assets/",
+    "copy-assets": "mkdir -p dist/assets && cp -r src/assets/. dist/assets/",
     "start": "node dist/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
