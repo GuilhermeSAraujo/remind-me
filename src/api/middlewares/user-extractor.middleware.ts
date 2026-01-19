@@ -36,7 +36,13 @@ export async function extractUserData(c: Context, next: Next) {
 
       c.set("userData", userData);
 
-      console.log('[MIDDLEWARE]', user.name, user.phoneNumber);
+      const messageBeginning = body.body?.trim()
+        .split(" ")
+        .slice(0, 3)
+        .join(" ")
+        .toLowerCase();
+
+      console.log('[MIDDLEWARE]', user.name, user.phoneNumber, messageBeginning);
 
       await next();
     }
