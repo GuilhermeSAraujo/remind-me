@@ -7,11 +7,11 @@ export class UserService {
    */
   async findOrCreateUser(phoneNumber: string, name: string): Promise<IUser> {
     let user = await User.findOne({ phoneNumber });
-    
+
     if (!user) {
       // Try to find user by name (in case phone number changed)
       const existingUser = await User.findOne({ name });
-      
+
       if (existingUser) {
         // Update phone number and all associated reminders
         await this.updateUserPhoneNumber(existingUser, phoneNumber);
@@ -21,7 +21,7 @@ export class UserService {
         user = await User.create({ phoneNumber, name });
       }
     }
-    
+
     return user;
   }
 
@@ -34,20 +34,12 @@ export class UserService {
       { userPhoneNumber: user.phoneNumber },
       { userPhoneNumber: newPhoneNumber }
     );
-    
-    console.log('[USER SERVICE] Updated reminders for phone number change:', {
-      oldPhone: user.phoneNumber,
-      newPhone: newPhoneNumber,
-    });
-    
+
     // Update user phone number
     user.phoneNumber = newPhoneNumber;
     await user.save();
-    
-    console.log('[USER SERVICE] Updated user phone number:', {
-      name: user.name,
-      newPhone: newPhoneNumber,
-    });
+
+    console.info('[USER] Phone updated:', { name: user.name, newPhone: newPhoneNumber });
   }
 }
 

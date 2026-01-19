@@ -29,16 +29,14 @@ export async function startSession() {
 
     SESSION_TOKEN = tokenData.token;
 
-    console.log("[CONFIG] Session token:", !!SESSION_TOKEN);
+    console.info("[CONFIG] Session initialized");
 
     const response = await fetch(`${CONFIG.API_BASE_URL}/api/${env.SECRET_KEY}/show-all-sessions`)
 
     const existingSessions = await response.json() as { response: string[] }
 
-    console.log('[CONFIG] Existing sessions:', existingSessions.response);
-
     if (!existingSessions.response.includes(CONFIG.SESSION_NAME)) {
-        console.log("[CONFIG] Creating brand new session");
+        console.info("[CONFIG] Creating new WhatsApp session");
         await fetch(`${CONFIG.API_BASE_URL}/api/${CONFIG.SESSION_NAME}/start-session`, {
             method: "POST",
             headers: {

@@ -61,16 +61,12 @@ export async function generateContentWithContext(
     if (operation) {
       await recordAIUsage(userId, operation, totalTokens);
 
-      console.log(`[AI] ${operation} - Tokens used: ${totalTokens}`, {
-        userId: userId.slice(-4),
-        promptTokens: usageMetadata?.promptTokenCount,
-        candidatesTokens: usageMetadata?.candidatesTokenCount,
-      });
+      console.info(`[AI] (${userId.slice(-4)}) ${operation}: ${totalTokens} tokens`);
     }
 
     return result.response.text();
   } catch (error) {
-    console.error("Error generating AI content with context:", error);
+    console.error("[AI] Generation failed:", error);
     throw error;
   }
 }

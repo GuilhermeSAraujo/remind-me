@@ -5,7 +5,7 @@ import { sendMessage } from "../integrations/whatsapp/send-message";
 export async function triggerReminders() {
     const now = new Date(getBrazilTime());
 
-    console.log(`[CRON] Starting triggerReminders at: ${now}`);
+    console.info(`[CRON] Starting at ${now.toLocaleString()}`);
 
     // Find reminders that are pending and whose scheduled time has passed
     const reminders = await Reminder.find({
@@ -14,12 +14,10 @@ export async function triggerReminders() {
     });
 
     if (reminders.length === 0) {
-        const totalReminders = await Reminder.countDocuments({});
-        console.log(`[CRON] Ran successfully, no reminders to send`, { totalReminders });
         return
     }
 
-    console.log(`[CRON] Found ${reminders.length} reminders to send`);
+    console.info(`[CRON] Processing ${reminders.length} reminders`);
 
     for await (const reminder of reminders) {
         try {
@@ -49,13 +47,11 @@ export async function triggerReminders() {
 
             }
         } catch (error) {
-            console.error(`Error sending reminder: ${reminder.title} to ${reminder.userPhoneNumber}`, error);
+            console.error(`[CRON] Failed to send reminder:`, { title: reminder.title, phone: reminder.userPhoneNumber, error });
         }
     }
 
-    console.log(`[CRON] Sent ${reminders.length} reminders`);
-
-    console.log(`[CRON] Ending triggerReminders at: ${getBrazilTime()}`);
+    console.info(`[CRON] Completed - sent ${reminders.length} reminders`);
 }
 
 function calculateNextScheduledTime(

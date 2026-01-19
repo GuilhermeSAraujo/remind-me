@@ -36,22 +36,14 @@ export async function extractUserData(c: Context, next: Next) {
 
       c.set("userData", userData);
 
-      // Log request data
-      console.log('[MIDDLEWARE] Request received:', {
-        type: body.event,
-        message: body?.body || null,
-        user: {
-          name: user.name,
-          phoneNumber: user.phoneNumber,
-        },
-      });
+      console.log('[MIDDLEWARE]', user.name, user.phoneNumber);
 
       await next();
     }
 
     return c.body(null, 204);
   } catch (error) {
-    console.error("Error parsing message payload:", error);
+    console.error("[MIDDLEWARE] 🚨 ERROR:", error);
     return c.json(
       {
         success: false,

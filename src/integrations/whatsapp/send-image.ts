@@ -51,7 +51,7 @@ export async function sendImage(
         const assetsPath = join(__dirname, "../../assets", imagePath);
 
         if (!existsSync(assetsPath)) {
-            console.error("[SEND IMAGE] File not found:", assetsPath);
+            console.error("[SEND IMAGE] 🚨 File not found:", assetsPath);
             return false;
         }
 
@@ -83,13 +83,13 @@ export async function sendImage(
 
         if (!response.ok) {
             const text = await response.text();
-            console.error("[SEND IMAGE] Failed to send image:", response.status, text);
+            console.error("[SEND IMAGE] 🚨 API ERROR:", response.status, text);
             return false;
         }
 
         return true;
     } catch (error) {
-        console.error("[SEND IMAGE] Error sending image:", error);
+        console.error("[SEND IMAGE] 🚨 Unexpected ERROR:", error);
         return false;
     }
 }

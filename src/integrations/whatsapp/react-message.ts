@@ -24,13 +24,13 @@ export async function reactMessage(messageId: string, reaction: string): Promise
     const text = await response.text();
 
     if (!response.ok) {
-      console.error("API returned error status:", response.status, text);
+      console.error("[REACT MESSAGE] API error:", response.status, text);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error("Network/fetch error:", error);
+    console.error("[REACT MESSAGE] Failed:", error);
     return false;
   }
 }

@@ -28,7 +28,7 @@ app.post("/message", extractUserData, async (c) => {
     await reactMessage(userData.messageId, "⏳");
 
     if (body.body?.startsWith("/")) {
-        console.log("Command received", body.body);
+        console.info("[SERVER] Command received:", body.body);
         return c.json({
             success: true,
             message: "Command received",
@@ -60,5 +60,5 @@ serve({
     port,
 });
 
-console.log(`Server is running on http://localhost:${port}`);
+console.info(`[SERVER] Running on http://localhost:${port}`);
 

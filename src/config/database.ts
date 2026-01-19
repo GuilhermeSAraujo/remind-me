@@ -4,10 +4,10 @@ import { env } from "./env";
 const connectDB = async () => {
     try {
         const conn = await mongoose.connect(env.MONGODB_URI);
-        console.log(`[DB] MongoDB Connected: ${conn.connection.host}`);
+        console.info(`[DB] Connected to ${conn.connection.host}`);
         return conn;
     } catch (error) {
-        console.error(`Error connecting to MongoDB: ${error}`);
+        console.error(`[DB] 🚨 ERROR: ${error}`);
         process.exit(1);
     }
 };

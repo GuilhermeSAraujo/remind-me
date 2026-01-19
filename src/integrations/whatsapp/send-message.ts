@@ -16,8 +16,6 @@ export interface SendMessageOptions {
 export async function sendMessage(options: SendMessageOptions): Promise<boolean> {
   let { phone, message, isGroup = false, isNewsletter = false, isLid = true } = options;
 
-  console.log('[SEND MESSAGE] Sending message to:', options);
-
   if (phone.startsWith("5531") || phone.length === 12) {
     isLid = false;
   }
@@ -42,13 +40,13 @@ export async function sendMessage(options: SendMessageOptions): Promise<boolean>
 
     if (!response.ok) {
       const text = await response.text();
-      console.error("[SEND MESSAGE] Failed to send message:", response.status, text);
+      console.error("[SEND MESSAGE] 🚨 API ERROR:", response.status, text);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error("[SEND MESSAGE] Error sending message:", error);
+    console.error("[SEND MESSAGE] 🚨 Unexpected ERROR:", error);
     return false;
   }
 }
