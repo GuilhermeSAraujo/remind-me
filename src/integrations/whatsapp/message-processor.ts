@@ -14,6 +14,17 @@ import { Reminder } from "../../domain/reminders/reminder.model";
 export async function processMessage(body: MessagePayload, userData: UserData) {
     const message = body.body?.trim();
 
+    if (message.length > 250) {
+        console.log("[PROCESSOR] ⚠ Message too long:", message.length);
+        await sendMessage({
+            phone: userData.phoneNumber,
+            message: "Infelizmente, não é possível enviar mensagens muito longas. Por favor, envie uma mensagem mais curta.",
+        });
+        await reactMessage(userData.messageId, "🚫");
+        return;
+    }
+
+
     const firstThreeWords = message
         .split(" ")
         .slice(0, 3)
