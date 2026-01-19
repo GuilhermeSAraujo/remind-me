@@ -27,6 +27,12 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
 
     let messageIntent = containsList ? "list_reminders" : containsReminder ? "reminder" : containsDelete ? "delete_reminder" : containsHelp ? "help" : null;
 
+    const shortMessage = message.length <= 3;
+
+    if (shortMessage) {
+        messageIntent = "help";
+    }
+
     if (!messageIntent) {
         console.log("[PROCESSOR] ⚠ Using AI to classify intent", firstThreeWords);
     }
