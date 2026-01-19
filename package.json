@@ -1,6 +1,6 @@
 {
   "name": "remind-me",
-  "version": "0.0.1",
+  "version": "0.0.1-beta",
   "description": "Bot to schedule tasks and reminders",
   "license": "ISC",
   "author": "GuilhermeSAraujo",
