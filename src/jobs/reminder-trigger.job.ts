@@ -38,12 +38,10 @@ export async function triggerReminders() {
                     { _id: reminder._id },
                     { scheduledTime: nextScheduledTime }
                 );
-                return;
 
             } else {
                 // Non-recurring reminder, mark as sent
                 await Reminder.updateOne({ _id: reminder._id }, { status: "sent" });
-                return;
 
             }
         } catch (error) {
