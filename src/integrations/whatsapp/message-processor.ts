@@ -20,7 +20,7 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
         .join(" ")
         .toLowerCase();
 
-    const containsReminder = /lembre|lembrar|lembrete|crie|cria|agende|agenda/.test(firstThreeWords);
+    const containsReminder = /lembre|lembrar|lembrete|lembra|crie|cria|agende|agenda/.test(firstThreeWords);
     const containsList = /lista|mostra|ver/.test(firstThreeWords);
     const containsDelete = /apaga|deleta|remove|exclui/.test(firstThreeWords);
     const containsHelp = /ajuda|help|sobre|como|boa tarde|bom dia|boa noite|tudo bem|como vai|oi|ola|olá|alo/.test(firstThreeWords);
