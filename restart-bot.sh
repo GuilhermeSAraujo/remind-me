@@ -55,18 +55,8 @@ git fetch --all
 CURRENT_BRANCH=$(git branch --show-current)
 print_warning "Branch atual: $CURRENT_BRANCH"
 
-# # Verifica se há mudanças locais
-# if [[ -n $(git status -s) ]]; then
-#     print_warning "Há mudanças locais não commitadas!"
-#     read -p "Deseja fazer stash das mudanças? (y/n) " -n 1 -r
-#     echo
-#     if [[ $REPLY =~ ^[Yy]$ ]]; then
-#         git stash
-#         print_success "Mudanças em stash"
-#     fi
-# fi
-
-git pull origin $CURRENT_BRANCH
+# Force update: discard local changes and match remote
+git reset --hard origin/$CURRENT_BRANCH
 print_success "Código atualizado"
 
 # 5. Limpa cache do Node.js
