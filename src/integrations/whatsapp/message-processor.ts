@@ -57,7 +57,7 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                 const resetInHours = rateLimitCheck.resetIn / (1000 * 60 * 60);
                 await sendMessage({
                     phone: userData.phoneNumber,
-                    message: RATE_LIMIT_EXCEEDED_MESSAGE(resetInHours),
+                    message: RATE_LIMIT_EXCEEDED_MESSAGE(resetInHours, userData.phoneNumber),
                 });
                 await reactMessage(userData.messageId, "🚫");
                 return;
@@ -84,7 +84,7 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                     if (pendingRemindersCount >= 5) {
                         await sendMessage({
                             phone: userData.phoneNumber,
-                            message: FREE_USER_REMINDER_LIMIT_MESSAGE(),
+                            message: FREE_USER_REMINDER_LIMIT_MESSAGE(userData.phoneNumber),
                         });
                         await reactMessage(userData.messageId, "😢");
                         return;
@@ -98,7 +98,7 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                     const resetInHours = rateLimitCheck.resetIn / (1000 * 60 * 60);
                     await sendMessage({
                         phone: userData.phoneNumber,
-                        message: RATE_LIMIT_EXCEEDED_MESSAGE(resetInHours),
+                        message: RATE_LIMIT_EXCEEDED_MESSAGE(resetInHours, userData.phoneNumber),
                     });
                     await reactMessage(userData.messageId, "🚫");
                     return;
@@ -115,7 +115,8 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                 const stats = await getUserUsageStats(userData.phoneNumber);
                 const warningMessage = RATE_LIMIT_MESSAGE(
                     stats.requestsRemaining,
-                    24
+                    24,
+                    userData.phoneNumber
                 );
                 if (warningMessage) {
                     await sendMessage({
