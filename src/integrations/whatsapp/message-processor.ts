@@ -1,15 +1,15 @@
-import { generateContentWithContext, clearChatSession } from "../ai/gemini-client";
-import { PROMPT_CLASSIFY_MESSAGE_INTENT } from "../ai/gemini-constants";
-import { scheduleReminder } from "../../domain/reminders/schedule";
-import { listReminders } from "../../domain/reminders/list";
 import { deleteReminder } from "../../domain/reminders/delete";
+import { listReminders } from "../../domain/reminders/list";
+import { Reminder } from "../../domain/reminders/reminder.model";
+import { scheduleReminder } from "../../domain/reminders/schedule";
+import { User } from "../../domain/users/user.model";
+import { checkRateLimit } from "../../services/rate-limiter.service";
+import { clearChatSession, generateContentWithContext } from "../ai/gemini-client";
+import { PROMPT_CLASSIFY_MESSAGE_INTENT } from "../ai/gemini-constants";
+import { FREE_USER_REMINDER_LIMIT_MESSAGE, HELP_MESSAGE, RATE_LIMIT_EXCEEDED_MESSAGE } from "./constants";
 import { reactMessage } from "./react-message";
 import { sendMessage } from "./send-message";
 import type { MessagePayload, UserData } from "./types";
-import { HELP_MESSAGE, RATE_LIMIT_MESSAGE, RATE_LIMIT_EXCEEDED_MESSAGE, FREE_USER_REMINDER_LIMIT_MESSAGE } from "./constants";
-import { checkRateLimit, getUserUsageStats } from "../../services/rate-limiter.service";
-import { User } from "../../domain/users/user.model";
-import { Reminder } from "../../domain/reminders/reminder.model";
 
 export async function processMessage(body: MessagePayload, userData: UserData) {
     const message = body.body?.trim();
