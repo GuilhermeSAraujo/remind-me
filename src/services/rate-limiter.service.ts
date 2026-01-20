@@ -10,7 +10,7 @@ const RATE_LIMITS = {
     TOKENS_PER_EXTRACT: 300,     // ~200-400 tokens
 
     // Maximum tokens in 24h for free tier
-    MAX_TOKENS_FREE_24H: 3200,   // Roughly ~5-10 requests
+    MAX_TOKENS_FREE_24H: 2500,   // Roughly ~5-10 requests
 
     // Sliding window
     WINDOW_HOURS: 24,

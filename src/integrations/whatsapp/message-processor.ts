@@ -111,19 +111,6 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                 });
                 await reactMessage(userData.messageId, "✅");
 
-                // Send warning if user is close to limit
-                const stats = await getUserUsageStats(userData.phoneNumber);
-                const warningMessage = RATE_LIMIT_MESSAGE(
-                    stats.requestsRemaining,
-                    24,
-                    userData.phoneNumber
-                );
-                if (warningMessage) {
-                    await sendMessage({
-                        phone: userData.phoneNumber,
-                        message: warningMessage,
-                    });
-                }
                 break;
 
             case "list_reminders":
