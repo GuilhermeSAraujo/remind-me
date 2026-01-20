@@ -23,10 +23,32 @@ export async function extractUserData(c: Context, next: Next) {
     c.set("messageBody", body);
 
     if (body.event === "onmessage" && body.sender && body.body) {
+      // log all data from the request that is used in a single log
+      console.log('[MIDDLEWARE] Request data:', {
+        phoneNumber: body.from,
+        sender: body.sender,
+        messageId: body.id,
+      });
+
       const phoneNumber = body.from.split("@")[0] || "";
 
+      // Fallbacks para o nome quando o contato não está salvo
+      const userName = body.sender.name
+        || body.notifyName
+        || body.pushname
+        || phoneNumber; // Último recurso: usar o próprio número como nome
+
+      // Log quando fallback for utilizado
+      if (!body.sender.name) {
+        console.log('[MIDDLEWARE] ⚠️ Contact not saved, using fallback name:', {
+          fallbackName: userName,
+          notifyName: body.notifyName,
+          pushname: body.pushname
+        });
+      }
+
       // Use service to find or create user
-      const user = await userService.findOrCreateUser(phoneNumber, body.sender.name);
+      const user = await userService.findOrCreateUser(phoneNumber, userName);
 
       const userData: UserData = {
         phoneNumber: user.phoneNumber,

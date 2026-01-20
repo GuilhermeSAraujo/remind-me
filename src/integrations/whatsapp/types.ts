@@ -1,6 +1,6 @@
 export interface MessageSender {
   id: string;
-  name: string;
+  name?: string; // Pode ser undefined quando o contato não está salvo
 }
 
 export interface MessagePayload {
@@ -11,6 +11,9 @@ export interface MessagePayload {
   from: string;
   urlcode?: string;
   quotedMsgId?: string;
+  // Campos adicionais do WPPConnect para contatos não salvos
+  notifyName?: string; // Nome do perfil do WhatsApp do remetente
+  pushname?: string; // Push name alternativo
 }
 
 export interface ApiResponse {
