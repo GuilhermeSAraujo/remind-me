@@ -6,6 +6,27 @@ import { UserData } from "../../integrations/whatsapp/types";
 import { formatDateToBrazilianTimezone, getBrazilTime } from "../../shared/utils/date.utils";
 import { findReminderByMessageIdOrTextOrLastMessage } from "./find-reminder.helper";
 
+interface DelayData {
+    newScheduledTime: string;
+}
+
+async function extractDelayData(
+    userMessage: string,
+    currentScheduledTime: string,
+    currentDateTime: string,
+    userId: string
+): Promise<DelayData> {
+    let delayData = await generateContentWithContext(
+        userId,
+        PROMPT_IDENTIFY_DELAY(userMessage, currentScheduledTime, currentDateTime),
+        'identify_delay'
+    );
+
+    delayData = delayData.replace(/```json/g, "").replace(/```/g, "");
+
+    return JSON.parse(delayData) as DelayData;
+}
+
 export async function delayReminder({ userMessage, userData, quotedMsgId }: { userMessage: string, userData: UserData, quotedMsgId?: string }) {
     const reminder = await findReminderByMessageIdOrTextOrLastMessage(userData.phoneNumber, quotedMsgId);
 
@@ -35,24 +56,13 @@ export async function delayReminder({ userMessage, userData, quotedMsgId }: { us
     const currentDateTime = getBrazilTime();
     const currentScheduledTime = formatDateToBrazilianTimezone(reminder.scheduledTime);
 
-    const aiResponse = await generateContentWithContext(
-        userData.phoneNumber,
-        PROMPT_IDENTIFY_DELAY(userMessage, currentScheduledTime, currentDateTime),
-        'identify_delay'
-    );
-
-    if (!aiResponse) {
-        console.error("[DELAY REMINDER] Failed to get AI response");
-        await sendMessage({
-            phone: userData.phoneNumber,
-            message: "Erro ao processar o adiamento. Tente novamente com um formato válido (ex: '30 minutos', '2 dias', 'Dia 10/05 às 09:00').",
-        });
-        await reactMessage(userData.messageId, "🚫");
-        return;
-    }
-
     try {
-        const delayData = JSON.parse(aiResponse) as { newScheduledTime: string };
+        const delayData = await extractDelayData(
+            userMessage,
+            currentScheduledTime,
+            currentDateTime,
+            userData.phoneNumber
+        );
 
         reminder.scheduledTime = new Date(delayData.newScheduledTime);
         reminder.status = "pending";
@@ -65,7 +75,7 @@ export async function delayReminder({ userMessage, userData, quotedMsgId }: { us
         });
         await reactMessage(userData.messageId, "✅");
     } catch (error) {
-        console.error("[DELAY REMINDER] Failed to parse AI response:", error);
+        console.error("[DELAY REMINDER] Failed to extract or parse delay data:", error);
         await sendMessage({
             phone: userData.phoneNumber,
             message: "Erro ao processar o adiamento. Tente novamente com um formato válido (ex: '30 minutos', '2 dias', 'Dia 10/05 às 09:00').",
