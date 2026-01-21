@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
+import { AIOperationType, AI_OPERATIONS } from "../../shared/types/ai.types";
 
 // User Interface
 export interface IUser extends Document {
@@ -9,7 +10,7 @@ export interface IUser extends Document {
         tokens: Array<{
             timestamp: Date;
             count: number;
-            operation: 'classify' | 'extract' | 'identify_delay';
+            operation: AIOperationType;
         }>;
         totalTokensLast24h?: number; // Cached value, recalculated on each check
     };
@@ -46,7 +47,7 @@ const UserSchema = new Schema<IUser>(
                     count: { type: Number, required: true },
                     operation: {
                         type: String,
-                        enum: ['classify', 'extract'],
+                        enum: AI_OPERATIONS,
                         required: true
                     },
                 }],

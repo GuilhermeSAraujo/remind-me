@@ -1,14 +1,17 @@
 import { User } from "../domain/users/user.model";
+import { AIOperationType } from "../shared/types/ai.types";
+
+// Token estimates per operation type
+const TOKENS_PER_OPERATION: Record<AIOperationType, number> = {
+    classify: 100,        // ~50-150 tokens
+    extract: 300,         // ~200-400 tokens
+    identify_delay: 50,   // ~50 tokens
+};
 
 // Rate limit configuration
 const RATE_LIMITS = {
     // Free tier: 5 requests in 24 hours
     FREE_REQUESTS_PER_24H: 5,
-
-    // Token-based limits (estimated tokens per operation)
-    TOKENS_PER_CLASSIFY: 100,    // ~50-150 tokens
-    TOKENS_PER_EXTRACT: 300,     // ~200-400 tokens
-    TOKENS_PER_IDENTIFY_DELAY: 50,     // ~50 tokens
 
     // Maximum tokens in 24h for free tier
     MAX_TOKENS_FREE_24H: 2500,   // Roughly ~5-10 requests
@@ -28,7 +31,7 @@ export interface RateLimitResult {
 
 export async function checkRateLimit(
     phoneNumber: string,
-    operation: 'classify' | 'extract'
+    operation: AIOperationType
 ): Promise<RateLimitResult> {
     const user = await User.findOne({ phoneNumber });
 
@@ -61,9 +64,7 @@ export async function checkRateLimit(
     const totalRequests = recentTokens.length;
 
     // Estimate tokens for this operation
-    const estimatedTokens = operation === 'classify'
-        ? RATE_LIMITS.TOKENS_PER_CLASSIFY
-        : RATE_LIMITS.TOKENS_PER_EXTRACT;
+    const estimatedTokens = TOKENS_PER_OPERATION[operation] || 1;
 
     // Check both request count and token limits
     const wouldExceedRequests = totalRequests >= RATE_LIMITS.FREE_REQUESTS_PER_24H;
@@ -103,7 +104,7 @@ export async function checkRateLimit(
  */
 export async function recordAIUsage(
     phoneNumber: string,
-    operation: 'classify' | 'extract' | 'identify_delay',
+    operation: AIOperationType,
     actualTokens?: number
 ): Promise<void> {
     const user = await User.findOne({ phoneNumber });
@@ -113,16 +114,7 @@ export async function recordAIUsage(
     }
 
     // Use actual tokens if provided, otherwise use estimate
-    const tokenCount = actualTokens || (
-        operation === 'classify'
-            ? RATE_LIMITS.TOKENS_PER_CLASSIFY
-            : operation === 'extract'
-                ? RATE_LIMITS.TOKENS_PER_EXTRACT
-                : operation === 'identify_delay'
-                    ? RATE_LIMITS.TOKENS_PER_IDENTIFY_DELAY
-                    : 0
-
-    );
+    const tokenCount = actualTokens ?? TOKENS_PER_OPERATION[operation];
 
     // Add new usage record
     user.aiUsage.tokens.push({

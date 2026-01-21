@@ -2,6 +2,7 @@ import { GoogleGenerativeAI, ChatSession } from "@google/generative-ai";
 import { env } from "../../config/env";
 import { DEFAULT_AI_MODEL } from "./gemini-constants";
 import { recordAIUsage } from "../../services/rate-limiter.service";
+import { AIOperationType } from "../../shared/types/ai.types";
 
 const genAI = new GoogleGenerativeAI(env.GOOGLE_API_KEY);
 
@@ -47,7 +48,7 @@ export interface AIResponse {
 export async function generateContentWithContext(
   userId: string,
   prompt: string,
-  operation?: 'classify' | 'extract' | 'identify_delay'
+  operation?: AIOperationType
 ): Promise<string> {
   try {
     const session = getChatSession(userId);
