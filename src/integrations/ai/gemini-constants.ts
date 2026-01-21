@@ -60,53 +60,25 @@ Example: Me lembre de comprar pão todos os dias as 14h
 }
 `;
 
-export const PROMPT_IDENTIFY_DELAY = (message: string, currentScheduledTime: string, currentDateTime: string) => `
-You are given a message from a user who wants to DELAY/POSTPONE a reminder.
-The user message is: ${message}
-Current date and time is: ${currentDateTime}
-Current scheduled time of the reminder is: ${currentScheduledTime}
+export const PROMPT_IDENTIFY_DELAY = (
+    message: string,
+    currentScheduledTime: string
+) => `
+  Task: update a reminder time by applying a delay.
+  
+  Message: "${message}"
+  Current scheduled time: ${currentScheduledTime}
+  
+  Rules:
+  - The message expresses a delay (minutes, hours, days, or relative terms like "amanhã", "próxima semana").
+  - Calculate the new time based on the current scheduled time.
+  - Keep the same hour/minute unless the message specifies otherwise.
+  - Use format: YYYY-MM-DD HH:mm:ss
+  
+  Output ONLY this JSON (no extra text):
+  {"newScheduledTime":"YYYY-MM-DD HH:mm:ss"}
+  `;
 
-Extract the delay duration from the message and calculate the new scheduled time.
-The user might specify the delay in minutes, hours, days, or use relative terms like "amanhã" (tomorrow), "próxima semana" (next week), etc.
-
-Respond ONLY with a valid json object in PLAINTEXT format with the following structure:
-{
-    newScheduledTime string (format: "YYYY-MM-DD HH:mm:ss")
-}
-
-Examples:
-User: "Adiar 30 minutos"
-Current scheduled: "2026-01-20 14:00:00"
-Current time: "2026-01-20 13:00:00"
-Response:
-{
-    newScheduledTime: "2026-01-20 14:30:00"
-}
-
-User: "Daqui 2 dias"
-Current scheduled: "2026-01-20 14:00:00"
-Current time: "2026-01-20 13:00:00"
-Response:
-{
-    newScheduledTime: "2026-01-22 14:00:00"
-}
-
-User: "amanhã"
-Current scheduled: "2026-01-20 14:00:00"
-Current time: "2026-01-20 13:00:00"
-Response:
-{
-    newScheduledTime: "2026-01-21 14:00:00"
-}
-
-User: "próxima semana"
-Current scheduled: "2026-01-20 14:00:00"
-Current time: "2026-01-20 13:00:00"
-Response:
-{
-    newScheduledTime: "2026-01-27 14:00:00"
-}
-`;
 
 /**
  * List of smallest, most cost-effective Google AI models
