@@ -238,10 +238,6 @@ app.post("/message", extractUserData, async (c) => {
 
     const userData = c.get("userData");
 
-    if (userData!?.phoneNumber !== "553199777722") {
-        return c.json({}, 200);
-    }
-
     if (body?.event !== "onmessage" || !userData) {
         return c.json({}, 200);
     }
