@@ -125,7 +125,7 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
 
             case "delay_reminder":
                 await delayReminder({ userMessage: body.body, userData, quotedMsgId: body.quotedMsgId });
-                await reactMessage(userData.messageId, "⏳");
+                await reactMessage(userData.messageId, "✅");
                 break;
 
             case "help":

@@ -43,13 +43,16 @@ export async function findReminderByMessageIdOrTextOrLastMessage(
 
         const lastBotMessage = messagesFromBot?.[messagesFromBot?.length - 1]
 
+        // just created the reminder
         if (lastBotMessage?.body?.startsWith("Lembrete criado para")) {
             const reminder = await Reminder.findOne({ userPhoneNumber }).sort({ createdAt: -1 })
 
             return reminder;
         }
 
-        return null;
+        const reminder = await Reminder.findOne({ userPhoneNumber, title: lastBotMessage?.body?.trim() })
+
+        return reminder;
     }
 }
 

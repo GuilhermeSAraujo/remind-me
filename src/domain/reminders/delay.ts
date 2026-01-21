@@ -71,7 +71,6 @@ export async function delayReminder({ userMessage, userData, quotedMsgId }: { us
             phone: userData.phoneNumber,
             message: `Lembrete "${reminder.title}" adiado com sucesso para ${formattedNewTime}.`,
         });
-        await reactMessage(userData.messageId, "✅");
     } catch (error) {
         console.error("[DELAY REMINDER] Failed to extract or parse delay data:", error);
         await sendMessage({
