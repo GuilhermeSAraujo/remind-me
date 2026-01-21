@@ -67,16 +67,24 @@ export const PROMPT_IDENTIFY_DELAY = (
   Task: update a reminder time by applying a delay.
   
   Message: "${message}"
-  Current scheduled time: ${currentScheduledTime}
+  Current scheduled date time: ${currentScheduledTime}
   
   Rules:
   - The message expresses a delay (minutes, hours, days, or relative terms like "amanhã", "próxima semana").
-  - Calculate the new time based on the current scheduled time.
+  - Calculate the new time based on the current SCHEDULED DATE TIME.
   - Keep the same hour/minute unless the message specifies otherwise.
   - Use format: YYYY-MM-DD HH:mm:ss
   
   Output ONLY this JSON (no extra text):
   {"newScheduledTime":"YYYY-MM-DD HH:mm:ss"}
+
+  Example: Adiar 30 minutos
+  Current scheduled date time: 2026-01-20 14:00:00
+  Output: {"newScheduledTime":"2026-01-20 14:30:00"}
+
+  Example: Adiar 2 dias
+  Current scheduled date time: 2026-01-20 14:00:00
+  Output: {"newScheduledTime":"2026-01-22 14:00:00"}
   `;
 
 
