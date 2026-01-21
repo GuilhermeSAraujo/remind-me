@@ -10,6 +10,9 @@ Se quiser ver os seus lembretes, envie:
 
 Se quiser deletar um lembrete:
 - Responda a mensagem do lembrete que deseja deletar com a palavra "Apagar"
+
+Se deseja adiar um lembrete:
+- Responda a mensagem do lembrete que deseja adiar com a palavra "Adiar" e informe o tempo desejado, ou data específica.
 `;
 
 const PREMIUM_LINK = (phoneNumber: string) =>
