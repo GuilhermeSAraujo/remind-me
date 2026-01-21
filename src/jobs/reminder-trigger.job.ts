@@ -21,10 +21,15 @@ export async function triggerReminders() {
 
     for await (const reminder of reminders) {
         try {
-            await sendMessage({
+            const success = await sendMessage({
                 phone: reminder.userPhoneNumber,
                 message: reminder.title,
             });
+
+            if (!success) {
+                console.error(`[CRON] Failed to send reminder:`, { title: reminder.title, phone: reminder.userPhoneNumber });
+                continue;
+            }
 
             // Handle recurring reminders
             if (reminder.recurrence_type !== "none" && reminder.recurrence_interval > 0) {
