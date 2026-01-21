@@ -21,6 +21,7 @@ export async function getMessageById(messageId: string): Promise<string | null> 
         }
 
         const data = await response.json() as { response: { message: string } };
+        console.log("[GET MESSAGE BY ID] Message found:", data.response);
         return data.response?.message;
     } catch (error) {
         console.error("[GET MESSAGE BY ID] 🚨 Unexpected ERROR:", error);

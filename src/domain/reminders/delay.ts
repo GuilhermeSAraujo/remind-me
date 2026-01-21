@@ -34,6 +34,7 @@ export async function delayReminder({ userMessage, userData, quotedMsgId }: { us
             phone: userData.phoneNumber,
             message: "Não foi possível encontrar seu lembrete a ser adiado.",
         });
+        await reactMessage(userData.messageId, "🚫");
         return;
     }
 
