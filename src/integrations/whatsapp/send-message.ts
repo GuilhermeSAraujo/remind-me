@@ -40,7 +40,13 @@ export async function sendMessage(options: SendMessageOptions): Promise<boolean>
 
     if (!response.ok) {
       const text = await response.text();
-      console.error("[SEND MESSAGE] 🚨 API ERROR:", response.status, text);
+      console.error("[SEND MESSAGE] 🚨 API ERROR:", response.status, text, {
+        phone,
+        isGroup,
+        isNewsletter,
+        isLid,
+        message,
+      });
       return false;
     }
 

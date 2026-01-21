@@ -19,6 +19,7 @@ export async function triggerReminders() {
 
     console.info(`[CRON] Processing ${reminders.length} reminders`);
 
+    let failedReminders = 0;
     for await (const reminder of reminders) {
         try {
             const success = await sendMessage({
@@ -28,6 +29,7 @@ export async function triggerReminders() {
 
             if (!success) {
                 console.error(`[CRON] Failed to send reminder:`, { title: reminder.title, phone: reminder.userPhoneNumber });
+                failedReminders++;
                 continue;
             }
 
@@ -54,7 +56,7 @@ export async function triggerReminders() {
         }
     }
 
-    console.info(`[CRON] Completed - sent ${reminders.length} reminders`);
+    console.info(`[CRON] Completed - sent ${reminders.length - failedReminders} reminders`);
 }
 
 function calculateNextScheduledTime(
