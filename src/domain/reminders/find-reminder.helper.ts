@@ -29,7 +29,7 @@ export async function findReminderByMessageIdOrTextOrLastMessage(
         if (message) {
             reminder = await Reminder.findOne({
                 userPhoneNumber,
-                title: message.toLowerCase().trim()
+                title: message.trim()
             });
         }
 

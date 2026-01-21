@@ -53,7 +53,7 @@ export async function delayReminder({ userMessage, userData, quotedMsgId }: { us
     }
 
     // send it to AI to extract the delay
-    const currentScheduledTime = formatDateToBrazilianTimezone(reminder.scheduledTime);
+    const currentScheduledTime = reminder.scheduledTime.toISOString();
 
     try {
         const delayData = await extractDelayData(

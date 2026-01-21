@@ -20,9 +20,9 @@ export async function getMessageById(messageId: string): Promise<string | null> 
             return null;
         }
 
-        const data = await response.json() as { response: { message: string } };
-        console.log("[GET MESSAGE BY ID] Message found:", data.response);
-        return data.response?.message;
+        const data = await response.json() as { response: { data: { body: string; content: string } } };
+
+        return data.response?.data?.body || data.response?.data?.content;
     } catch (error) {
         console.error("[GET MESSAGE BY ID] 🚨 Unexpected ERROR:", error);
         return null;
