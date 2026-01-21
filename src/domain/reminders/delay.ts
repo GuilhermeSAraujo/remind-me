@@ -3,7 +3,7 @@ import { PROMPT_IDENTIFY_DELAY } from "../../integrations/ai/gemini-constants";
 import { reactMessage } from "../../integrations/whatsapp/react-message";
 import { sendMessage } from "../../integrations/whatsapp/send-message";
 import { UserData } from "../../integrations/whatsapp/types";
-import { formatDateToBrazilianTimezone, formatFriendlyDateTime } from "../../shared/utils/date.utils";
+import { formatFriendlyDateTime } from "../../shared/utils/date.utils";
 import { findReminderByMessageIdOrTextOrLastMessage } from "./find-reminder.helper";
 
 interface DelayData {
