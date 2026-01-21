@@ -11,3 +11,32 @@ export function formatDateToBrazilianTimezone(date: Date): string {
     return brazilTime.toISOString().slice(0, 19).replace('T', ' ');
 }
 
+export function formatFriendlyDateTime(date: Date): string {
+    const today = new Date(getBrazilTime());
+    const tomorrow = new Date(getBrazilTime());
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Remove hours/minutes for date comparison
+    today.setHours(0, 0, 0, 0);
+    tomorrow.setHours(0, 0, 0, 0);
+    const dateOnly = new Date(date);
+    dateOnly.setHours(0, 0, 0, 0);
+
+    const timeString = date.toLocaleString("pt-BR", {
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+
+    if (dateOnly.getTime() === today.getTime()) {
+        return `hoje às ${timeString}`;
+    } else if (dateOnly.getTime() === tomorrow.getTime()) {
+        return `amanhã às ${timeString}`;
+    } else {
+        const dateString = date.toLocaleDateString("pt-BR", {
+            day: '2-digit',
+            month: '2-digit',
+        });
+        return `${dateString} - ${timeString}`;
+    }
+}
+

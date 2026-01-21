@@ -3,7 +3,7 @@ import { PROMPT_IDENTIFY_DELAY } from "../../integrations/ai/gemini-constants";
 import { reactMessage } from "../../integrations/whatsapp/react-message";
 import { sendMessage } from "../../integrations/whatsapp/send-message";
 import { UserData } from "../../integrations/whatsapp/types";
-import { formatDateToBrazilianTimezone, getBrazilTime } from "../../shared/utils/date.utils";
+import { formatDateToBrazilianTimezone, formatFriendlyDateTime } from "../../shared/utils/date.utils";
 import { findReminderByMessageIdOrTextOrLastMessage } from "./find-reminder.helper";
 
 interface DelayData {
@@ -13,12 +13,11 @@ interface DelayData {
 async function extractDelayData(
     userMessage: string,
     currentScheduledTime: string,
-    currentDateTime: string,
     userId: string
 ): Promise<DelayData> {
     let delayData = await generateContentWithContext(
         userId,
-        PROMPT_IDENTIFY_DELAY(userMessage, currentScheduledTime, currentDateTime),
+        PROMPT_IDENTIFY_DELAY(userMessage, currentScheduledTime),
         'identify_delay'
     );
 
@@ -53,14 +52,12 @@ export async function delayReminder({ userMessage, userData, quotedMsgId }: { us
     }
 
     // send it to AI to extract the delay
-    const currentDateTime = getBrazilTime();
     const currentScheduledTime = formatDateToBrazilianTimezone(reminder.scheduledTime);
 
     try {
         const delayData = await extractDelayData(
             userMessage,
             currentScheduledTime,
-            currentDateTime,
             userData.phoneNumber
         );
 
@@ -68,7 +65,7 @@ export async function delayReminder({ userMessage, userData, quotedMsgId }: { us
         reminder.status = "pending";
         await reminder.save();
 
-        const formattedNewTime = formatDateToBrazilianTimezone(reminder.scheduledTime);
+        const formattedNewTime = formatFriendlyDateTime(reminder.scheduledTime);
         await sendMessage({
             phone: userData.phoneNumber,
             message: `Lembrete "${reminder.title}" adiado com sucesso para ${formattedNewTime}.`,

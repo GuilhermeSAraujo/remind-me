@@ -2,7 +2,7 @@ import { generateContentWithContext } from "../../integrations/ai/gemini-client"
 import { PROMPT_EXTRACT_REMINDER_DATA } from "../../integrations/ai/gemini-constants";
 import { Reminder } from "./reminder.model";
 import { UserData } from "../../api/middlewares/user-extractor.middleware";
-import { getBrazilTime } from "../../shared/utils/date.utils";
+import { formatFriendlyDateTime, getBrazilTime } from "../../shared/utils/date.utils";
 import { sendMessage } from "../../integrations/whatsapp/send-message";
 
 export async function scheduleReminder({
@@ -62,37 +62,12 @@ function formatReminderCreatedMessage(reminderData: ReminderData): string {
     };
 
     const reminderDate = new Date(reminderData.date);
-    const today = new Date(getBrazilTime());
-    const tomorrow = new Date(getBrazilTime());
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    // Remove hours/minutes for date comparison
-    today.setHours(0, 0, 0, 0);
-    tomorrow.setHours(0, 0, 0, 0);
-    const reminderDateOnly = new Date(reminderDate);
-    reminderDateOnly.setHours(0, 0, 0, 0);
-
-    let dateDescription: string;
-    if (reminderDateOnly.getTime() === today.getTime()) {
-        dateDescription = "hoje";
-    } else if (reminderDateOnly.getTime() === tomorrow.getTime()) {
-        dateDescription = "amanhã";
-    } else {
-        dateDescription = `dia ${reminderDate.toLocaleDateString("pt-BR", {
-            day: '2-digit',
-            month: '2-digit',
-        })}`;
-    }
-
-    const timeString = reminderDate.toLocaleString("pt-BR", {
-        hour: '2-digit',
-        minute: '2-digit',
-    });
+    const formattedDateTime = formatFriendlyDateTime(reminderDate);
 
     const recurrenceString = reminderData.recurrence_type !== "none"
         ? `, com recorrência a cada ${reminderData.recurrence_interval} ${recurrenceTypePtBr[reminderData.recurrence_type]}`
         : "";
 
-    return `Lembrete criado para ${dateDescription} às ${timeString}${recurrenceString}`;
+    return `Lembrete criado para ${formattedDateTime}${recurrenceString}`;
 }
 
