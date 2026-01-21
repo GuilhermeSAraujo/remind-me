@@ -9,7 +9,7 @@ export interface IUser extends Document {
         tokens: Array<{
             timestamp: Date;
             count: number;
-            operation: 'classify' | 'extract';
+            operation: 'classify' | 'extract' | 'identify_delay';
         }>;
         totalTokensLast24h?: number; // Cached value, recalculated on each check
     };

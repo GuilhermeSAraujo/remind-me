@@ -8,6 +8,7 @@ const RATE_LIMITS = {
     // Token-based limits (estimated tokens per operation)
     TOKENS_PER_CLASSIFY: 100,    // ~50-150 tokens
     TOKENS_PER_EXTRACT: 300,     // ~200-400 tokens
+    TOKENS_PER_IDENTIFY_DELAY: 50,     // ~50 tokens
 
     // Maximum tokens in 24h for free tier
     MAX_TOKENS_FREE_24H: 2500,   // Roughly ~5-10 requests
@@ -102,7 +103,7 @@ export async function checkRateLimit(
  */
 export async function recordAIUsage(
     phoneNumber: string,
-    operation: 'classify' | 'extract',
+    operation: 'classify' | 'extract' | 'identify_delay',
     actualTokens?: number
 ): Promise<void> {
     const user = await User.findOne({ phoneNumber });
@@ -115,7 +116,12 @@ export async function recordAIUsage(
     const tokenCount = actualTokens || (
         operation === 'classify'
             ? RATE_LIMITS.TOKENS_PER_CLASSIFY
-            : RATE_LIMITS.TOKENS_PER_EXTRACT
+            : operation === 'extract'
+                ? RATE_LIMITS.TOKENS_PER_EXTRACT
+                : operation === 'identify_delay'
+                    ? RATE_LIMITS.TOKENS_PER_IDENTIFY_DELAY
+                    : 0
+
     );
 
     // Add new usage record

@@ -7,11 +7,14 @@ WhatsApp bot para criação de lembretes através de um chat bot.
     - User param na request -> identificar usuário na hora do pagamento
 
 - Configurar github action para fazer ssh no servidor
-- Melhorar UX
-    - Exclusão
 
 - Implementar
     - Adiamento
+
+- Melhorar UX
+    - Exclusão
+
+
 
 - Tráfego Pago
 

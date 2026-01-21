@@ -7,9 +7,10 @@ Classify the message into one of these intents:
 - "reminder": User wants to create a new reminder
 - "list_reminders": User wants to see their existing reminders
 - "delete_reminder": User wants to delete a reminder
+- "delay_reminder": User wants to delay a reminder
 - "help": User needs help or the message doesn't fit other categories
 
-Respond with ONLY one of these exact words: reminder, list_reminders, delete_reminder, or help
+Respond with ONLY one of these exact words: reminder, list_reminders, delete_reminder, delay_reminder, or help
 
 Examples:
 "Me lembre de comprar pão às 14h" -> reminder
@@ -21,6 +22,9 @@ Examples:
 "Apagar lembrete" -> delete_reminder
 "Deletar lembrete de comprar pão" -> delete_reminder
 "Remover lembrete" -> delete_reminder
+"Atrasar lembrete de comprar pão" -> delay_reminder
+"Adiar lembrete de comprar pão" -> delay_reminder
+"Adiar lembrete de comprar pão para amanhã" -> delay_reminder
 "O que você faz?" -> help
 "Ajuda" -> help
 `;
@@ -53,6 +57,54 @@ Example: Me lembre de comprar pão todos os dias as 14h
     date: "2026-01-17 14:00:00",
     recurrence_type: "daily",
     recurrence_interval: 1,
+}
+`;
+
+export const PROMPT_IDENTIFY_DELAY = (message: string, currentScheduledTime: string, currentDateTime: string) => `
+You are given a message from a user who wants to DELAY/POSTPONE a reminder.
+The user message is: ${message}
+Current date and time is: ${currentDateTime}
+Current scheduled time of the reminder is: ${currentScheduledTime}
+
+Extract the delay duration from the message and calculate the new scheduled time.
+The user might specify the delay in minutes, hours, days, or use relative terms like "amanhã" (tomorrow), "próxima semana" (next week), etc.
+
+Respond ONLY with a valid json object in PLAINTEXT format with the following structure:
+{
+    newScheduledTime string (format: "YYYY-MM-DD HH:mm:ss")
+}
+
+Examples:
+User: "Adiar 30 minutos"
+Current scheduled: "2026-01-20 14:00:00"
+Current time: "2026-01-20 13:00:00"
+Response:
+{
+    newScheduledTime: "2026-01-20 14:30:00"
+}
+
+User: "Daqui 2 dias"
+Current scheduled: "2026-01-20 14:00:00"
+Current time: "2026-01-20 13:00:00"
+Response:
+{
+    newScheduledTime: "2026-01-22 14:00:00"
+}
+
+User: "amanhã"
+Current scheduled: "2026-01-20 14:00:00"
+Current time: "2026-01-20 13:00:00"
+Response:
+{
+    newScheduledTime: "2026-01-21 14:00:00"
+}
+
+User: "próxima semana"
+Current scheduled: "2026-01-20 14:00:00"
+Current time: "2026-01-20 13:00:00"
+Response:
+{
+    newScheduledTime: "2026-01-27 14:00:00"
 }
 `;
 

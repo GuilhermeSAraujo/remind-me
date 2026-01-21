@@ -6,7 +6,6 @@ export const CONFIG = {
 } as const;
 
 let SESSION_TOKEN = "";
-
 export async function getSessionToken() {
 
     if (!SESSION_TOKEN) {

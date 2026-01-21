@@ -47,7 +47,7 @@ export interface AIResponse {
 export async function generateContentWithContext(
   userId: string,
   prompt: string,
-  operation?: 'classify' | 'extract'
+  operation?: 'classify' | 'extract' | 'identify_delay'
 ): Promise<string> {
   try {
     const session = getChatSession(userId);

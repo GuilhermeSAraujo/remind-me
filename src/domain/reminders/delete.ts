@@ -1,6 +1,7 @@
 import { UserData } from "../../api/middlewares/user-extractor.middleware";
 import { sendMessage } from "../../integrations/whatsapp/send-message";
 import { sendImage } from "../../integrations/whatsapp/send-image";
+import { findReminderByMessageIdOrTextOrLastMessage } from "./find-reminder.helper";
 import { Reminder } from "./reminder.model";
 
 export async function deleteReminder({ userData, quotedMsgId }: { userData: UserData, quotedMsgId?: string }) {
@@ -9,7 +10,7 @@ export async function deleteReminder({ userData, quotedMsgId }: { userData: User
         return;
     }
 
-    const reminder = await Reminder.findOne({ messageId: quotedMsgId, userPhoneNumber: userData.phoneNumber });
+    const reminder = await findReminderByMessageIdOrTextOrLastMessage(userData.phoneNumber, quotedMsgId);
 
     if (!reminder) {
         await reminderNotFoundMessage({ userData });

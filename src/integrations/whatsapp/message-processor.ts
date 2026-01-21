@@ -1,4 +1,5 @@
 import { deleteReminder } from "../../domain/reminders/delete";
+import { delayReminder } from "../../domain/reminders/delay";
 import { listReminders } from "../../domain/reminders/list";
 import { Reminder } from "../../domain/reminders/reminder.model";
 import { scheduleReminder } from "../../domain/reminders/schedule";
@@ -24,7 +25,6 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
         return;
     }
 
-
     const firstThreeWords = message
         .split(" ")
         .slice(0, 3)
@@ -35,11 +35,11 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
     const containsList = /lista|mostra|ver/.test(firstThreeWords);
     const containsDelete = /apaga|deleta|remove|exclui/.test(firstThreeWords);
     const containsHelp = /ajuda|help|sobre|como|boa tarde|bom dia|boa noite|tudo bem|como vai|oi|ola|olá|alo/.test(firstThreeWords);
+    const containsDelay = /adiar|atrasar|adia/.test(firstThreeWords);
 
-    let messageIntent = containsList ? "list_reminders" : containsReminder ? "reminder" : containsDelete ? "delete_reminder" : containsHelp ? "help" : null;
+    let messageIntent = containsList ? "list_reminders" : containsReminder ? "reminder" : containsDelete ? "delete_reminder" : containsHelp ? "help" : containsDelay ? "delay_reminder" : null;
 
     const shortMessage = message.length <= 3;
-
     if (shortMessage) {
         messageIntent = "help";
     }
@@ -67,7 +67,7 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                 userData.phoneNumber,
                 PROMPT_CLASSIFY_MESSAGE_INTENT(body.body),
                 'classify'
-            ) as "reminder" | "list_reminders" | "delete_reminder" | "help";
+            ) as "reminder" | "list_reminders" | "delete_reminder" | "delay_reminder" | "help";
         }
 
         switch (messageIntent) {
@@ -121,6 +121,11 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
             case "delete_reminder":
                 await deleteReminder({ userData, quotedMsgId: body.quotedMsgId });
                 await reactMessage(userData.messageId, "⚠");
+                break;
+
+            case "delay_reminder":
+                await delayReminder({ userMessage: body.body, userData, quotedMsgId: body.quotedMsgId });
+                await reactMessage(userData.messageId, "⏳");
                 break;
 
             case "help":
