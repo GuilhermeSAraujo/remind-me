@@ -8,6 +8,7 @@ import { checkRateLimit } from "../../services/rate-limiter.service";
 import { clearChatSession, generateContentWithContext } from "../ai/gemini-client";
 import { PROMPT_CLASSIFY_MESSAGE_INTENT } from "../ai/gemini-constants";
 import { FREE_USER_REMINDER_LIMIT_MESSAGE, HELP_MESSAGE, RATE_LIMIT_EXCEEDED_MESSAGE } from "./constants";
+import { detectMessageIntent, type MessageIntent } from "./intent-detector";
 import { reactMessage } from "./react-message";
 import { sendMessage } from "./send-message";
 import type { MessagePayload, UserData } from "./types";
@@ -25,19 +26,8 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
         return;
     }
 
-    const firstThreeWords = message
-        .split(" ")
-        .slice(0, 3)
-        .join(" ")
-        .toLowerCase();
-
-    const containsReminder = /lembre|lembrar|lembrete|lembra|crie|cria|agende|agenda/.test(firstThreeWords);
-    const containsList = /lista|mostra|ver/.test(firstThreeWords);
-    const containsDelete = /apaga|deleta|remove|exclui/.test(firstThreeWords);
-    const containsHelp = /ajuda|help|sobre|como|boa tarde|bom dia|boa noite|tudo bem|como vai|oi|ola|olá|alo/.test(firstThreeWords);
-    const containsDelay = /adiar|atrasar|adia/.test(firstThreeWords);
-
-    let messageIntent = containsList ? "list_reminders" : containsReminder ? "reminder" : containsDelete ? "delete_reminder" : containsHelp ? "help" : containsDelay ? "delay_reminder" : null;
+    // Detect message intent using pattern matching (No AI)
+    let messageIntent = detectMessageIntent(message);
 
     const shortMessage = message.length <= 3;
     if (shortMessage) {
@@ -45,7 +35,7 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
     }
 
     if (!messageIntent) {
-        console.log("[PROCESSOR] ⚠ Using AI to classify intent", firstThreeWords);
+        console.log("[PROCESSOR] ⚠ Using AI to classify intent for message:", message.substring(0, 50));
     }
 
     try {
@@ -67,7 +57,7 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                 userData.phoneNumber,
                 PROMPT_CLASSIFY_MESSAGE_INTENT(body.body),
                 'classify'
-            ) as "reminder" | "list_reminders" | "delete_reminder" | "delay_reminder" | "help";
+            ) as MessageIntent;
         }
 
         switch (messageIntent) {
@@ -126,6 +116,14 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
             case "delay_reminder":
                 await delayReminder({ userMessage: body.body, userData, quotedMsgId: body.quotedMsgId });
                 await reactMessage(userData.messageId, "✅");
+                break;
+
+            case "thank":
+                await sendMessage({
+                    phone: userData.phoneNumber,
+                    message: "De nada! Estou aqui para ajudar. Se precisar de algo, é só falar!",
+                });
+                await reactMessage(userData.messageId, "😊");
                 break;
 
             case "help":

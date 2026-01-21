@@ -5,11 +5,6 @@ import { findReminderByMessageIdOrTextOrLastMessage } from "./find-reminder.help
 import { Reminder } from "./reminder.model";
 
 export async function deleteReminder({ userData, quotedMsgId }: { userData: UserData, quotedMsgId?: string }) {
-    if (!quotedMsgId) {
-        await reminderNotFoundMessage({ userData });
-        return;
-    }
-
     const reminder = await findReminderByMessageIdOrTextOrLastMessage(userData.phoneNumber, quotedMsgId);
 
     if (!reminder) {
