@@ -34,30 +34,52 @@ You are given a message from a user and you need to EXTRACT the reminder data fr
 The user message is: ${message}
 Current date and time is: ${currentDateTime}
 
-Extract the reminder data from the message.
-Respond ONLY with a valid json object in PLAINTEXT format with the following structure:
-{
-    title string
-    date string
-    recurrence_type daily | weekly | monthly | yearly | none
-    recurrence_interval number
-}
+ Extract ALL reminders from the message. If there's only one reminder, return an array with one element.
+Respond ONLY with a valid JSON ARRAY in PLAINTEXT format with the following structure:
+[
+    {
+        title string
+        date string
+        recurrence_type daily | weekly | monthly | yearly | none
+        recurrence_interval number
+    }
+]
 
 Example: Me lembre de comprar pão 14h
-{
-    title: "Comprar pão",
-    date: "2026-01-17 14:00:00",
-    recurrence_type: "none",
-    recurrence_interval: 0,
-}
+[
+    {
+        title: "Comprar pão",
+        date: "2026-01-17 14:00:00",
+        recurrence_type: "none",
+        recurrence_interval: 0
+    }
+]
 
 Example: Me lembre de comprar pão todos os dias as 14h
-{
-    title: "Comprar pão",
-    date: "2026-01-17 14:00:00",
-    recurrence_type: "daily",
-    recurrence_interval: 1,
-}
+[
+    {
+        title: "Comprar pão",
+        date: "2026-01-17 14:00:00",
+        recurrence_type: "daily",
+        recurrence_interval: 1
+    }
+]
+
+Example: Me lembre de lavar louça toda terça-feira 14h e de ir ao mercado toda quarta-feira 19h
+[
+    {
+        title: "Lavar louça",
+        date: "2026-01-21 14:00:00",
+        recurrence_type: "weekly",
+        recurrence_interval: 1
+    },
+    {
+        title: "Ir ao mercado",
+        date: "2026-01-22 19:00:00",
+        recurrence_type: "weekly",
+        recurrence_interval: 1
+    }
+]
 `;
 
 export const PROMPT_IDENTIFY_DELAY = (

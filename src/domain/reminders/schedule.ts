@@ -14,19 +14,25 @@ export async function scheduleReminder({
     message: string;
     messageId: string;
 }) {
-    const reminderData = await extractReminderData(message, userData.phoneNumber);
+    const remindersData = await extractReminderData(message, userData.phoneNumber);
 
-    await Reminder.create({
-        messageId: messageId,
-        userPhoneNumber: userData.phoneNumber,
-        title: reminderData.title.charAt(0).toUpperCase() + reminderData.title.slice(1),
-        scheduledTime: new Date(reminderData.date),
-        recurrence_type: reminderData.recurrence_type,
-        recurrence_interval: reminderData.recurrence_interval,
-        status: "pending",
-    });
+    // Criar todos os lembretes
+    for (const reminderData of remindersData) {
+        await Reminder.create({
+            messageId: messageId,
+            userPhoneNumber: userData.phoneNumber,
+            title: reminderData.title.charAt(0).toUpperCase() + reminderData.title.slice(1),
+            scheduledTime: new Date(reminderData.date),
+            recurrence_type: reminderData.recurrence_type,
+            recurrence_interval: reminderData.recurrence_interval,
+            status: "pending",
+        });
+    }
 
-    const successMessage = formatReminderCreatedMessage(reminderData);
+    // Formatar mensagem de sucesso
+    const successMessage = remindersData.length === 1
+        ? formatReminderCreatedMessage(remindersData[0]!)
+        : formatMultipleRemindersCreatedMessage(remindersData);
 
     await sendMessage({
         phone: userData.phoneNumber,
@@ -41,7 +47,7 @@ interface ReminderData {
     recurrence_interval: number;
 }
 
-async function extractReminderData(message: string, userId: string): Promise<ReminderData> {
+async function extractReminderData(message: string, userId: string): Promise<ReminderData[]> {
     let reminderData = await generateContentWithContext(
         userId,
         PROMPT_EXTRACT_REMINDER_DATA(message, getBrazilTime()),
@@ -50,7 +56,7 @@ async function extractReminderData(message: string, userId: string): Promise<Rem
 
     reminderData = reminderData.replace(/```json/g, "").replace(/```/g, "");
 
-    return JSON.parse(reminderData) as ReminderData;
+    return JSON.parse(reminderData) as ReminderData[];
 }
 
 function formatReminderCreatedMessage(reminderData: ReminderData): string {
@@ -69,5 +75,27 @@ function formatReminderCreatedMessage(reminderData: ReminderData): string {
         : "";
 
     return `Lembrete criado para ${formattedDateTime}${recurrenceString}`;
+}
+
+function formatMultipleRemindersCreatedMessage(remindersData: ReminderData[]): string {
+    const recurrenceTypePtBr: Record<string, string> = {
+        daily: "dia",
+        weekly: "semana",
+        monthly: "mês",
+        yearly: "ano",
+    };
+
+    const remindersText = remindersData.map((reminder, index) => {
+        const reminderDate = new Date(reminder.date);
+        const formattedDateTime = formatFriendlyDateTime(reminderDate);
+
+        const recurrenceString = reminder.recurrence_type !== "none"
+            ? `, com recorrência a cada ${reminder.recurrence_interval} ${reminder.recurrence_interval === 1 ? recurrenceTypePtBr[reminder.recurrence_type] : recurrenceTypePtBr[reminder.recurrence_type] + "s"}`
+            : "";
+
+        return `${index + 1}. *${reminder.title}* - ${formattedDateTime}${recurrenceString}`;
+    }).join("\n");
+
+    return `✅ ${remindersData.length} lembretes criados:\n\n${remindersText}`;
 }
 
