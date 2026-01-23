@@ -1,6 +1,7 @@
 import { getAllMessagesFromChat } from "../../integrations/whatsapp/get-all-messages-from-chat";
 import { getMessageById } from "../../integrations/whatsapp/get-message-by-id";
 import { Reminder } from "./reminder.model";
+import { stripReminderPrefix } from "../../shared/utils/reminder-prefix.utils";
 
 export async function findReminderByMessageIdOrTextOrLastMessage(
     userPhoneNumber: string,
@@ -29,7 +30,7 @@ export async function findReminderByMessageIdOrTextOrLastMessage(
         if (message) {
             reminder = await Reminder.findOne({
                 userPhoneNumber,
-                title: message.trim()
+                title: stripReminderPrefix(message.trim())
             });
         }
 
@@ -50,7 +51,7 @@ export async function findReminderByMessageIdOrTextOrLastMessage(
             return reminder;
         }
 
-        const reminder = await Reminder.findOne({ userPhoneNumber, title: lastBotMessage?.body?.trim() })
+        const reminder = await Reminder.findOne({ userPhoneNumber, title: stripReminderPrefix(lastBotMessage?.body?.trim() || "") })
 
         return reminder;
     }

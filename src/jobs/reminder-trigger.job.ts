@@ -1,6 +1,7 @@
 import { Reminder } from "../domain/reminders/reminder.model";
 import { getBrazilTime } from "../shared/utils/date.utils";
 import { sendMessage } from "../integrations/whatsapp/send-message";
+import { getRandomPrefix } from "../shared/utils/reminder-prefix.utils";
 
 export async function triggerReminders() {
     const now = new Date(getBrazilTime());
@@ -24,7 +25,7 @@ export async function triggerReminders() {
         try {
             const success = await sendMessage({
                 phone: reminder.userPhoneNumber,
-                message: reminder.title,
+                message: getRandomPrefix() + reminder.title,
             });
 
             if (!success) {
