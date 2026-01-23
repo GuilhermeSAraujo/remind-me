@@ -176,5 +176,5 @@ export const SMALL_CHEAP_MODELS = {
  * Default model: Gemini 2.0 Flash-Lite (CHEAPEST paid option for high volume)
  * Perfect for tons of requests with minimal cost
  */
-export const DEFAULT_AI_MODEL = SMALL_CHEAP_MODELS.GEMINI_2_5_FLASH_LITE;
+export const DEFAULT_AI_MODEL = SMALL_CHEAP_MODELS.GEMINI_2_0_FLASH_LITE;
 
