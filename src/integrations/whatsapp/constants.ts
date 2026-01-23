@@ -24,7 +24,7 @@ export const RATE_LIMIT_MESSAGE = (remaining: number, resetInHours: number, phon
             `Você atingiu seu limite de ${5} interações gratuitas nas últimas 24 horas.\n\n` +
             `✅ Seus lembretes continuarão funcionando normalmente.\n\n` +
             `✨ *Quer acesso ilimitado?*\n` +
-            `Assine o plano Premium e crie lembretes sem limites!\n\n` +
+            `Assine o plano Premium por apenas R$ 4,90 e crie lembretes sem limites!\n\n` +
             `🔗 Conheça:\n${PREMIUM_LINK(phoneNumber)}\n\n` +
             `⏰ Seu limite será renovado em ${Math.ceil(resetInHours)} horas.`;
     }
@@ -38,7 +38,7 @@ export const RATE_LIMIT_EXCEEDED_MESSAGE = (resetInHours: number, phoneNumber: s
     `⚠️ *Limite diário atingido*\n\n` +
     `Você já utilizou todas as suas interações gratuitas nas últimas 24 horas.\n\n` +
     `✨ *Quer continuar usando sem limites?*\n` +
-    `Assine o Premium e tenha acesso ilimitado!\n\n` +
+    `Assine o Premium por apenas R$ 4,90 e tenha acesso ilimitado!\n\n` +
     `🔗 Assine agora:\n${PREMIUM_LINK(phoneNumber)}\n\n` +
     `⏰ Seu limite será renovado em ${Math.ceil(resetInHours)} horas.`;
 
@@ -49,6 +49,6 @@ export const FREE_USER_REMINDER_LIMIT_MESSAGE = (phoneNumber: string) =>
     `• Aguardar que algum lembrete seja enviado, ou\n` +
     `• Deletar um lembrete existente\n\n` +
     `✨ *Quer criar lembretes ilimitados?*\n` +
-    `Assine o plano Premium (R$ 3,90) e tenha acesso ilimitado!\n\n` +
+    `Assine o plano Premium por apenas R$ 4,90 e tenha acesso ilimitado!\n\n` +
     `🔗 Assine agora:\n${PREMIUM_LINK(phoneNumber)}`;
 
