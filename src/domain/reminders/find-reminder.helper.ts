@@ -21,39 +21,55 @@ export async function findReminderByMessageIdOrTextOrLastMessage(
             return reminder;
         }
 
-        // Fallback: verificar se está respondendo a mensagem que ENVIOU o lembrete
-        // texto da mensagem === lembrete em si
+        // texto da mensagem === lembrete em si || criação do lembrete pelo bot
         const message = await getMessageById(quotedMsgId);
 
-        console.log("[FIND REMINDER] Message found:", message);
-
+        // Fallback: verificar se está respondendo a mensagem que ENVIOU o lembrete
         if (message) {
             reminder = await Reminder.findOne({
                 userPhoneNumber,
                 title: stripReminderPrefix(message.trim())
             });
+
+            if (reminder) {
+                return reminder;
+            }
         }
 
-        console.log("[FIND REMINDER] Reminder found by text:", reminder);
 
-        return reminder;
-    } else {
-        const chatMessages = await getAllMessagesFromChat(userPhoneNumber)
+        if (message?.startsWith("Lembrete criado para")) {
+            const chatMessages = await getAllMessagesFromChat(userPhoneNumber)
 
-        const messagesFromBot = chatMessages?.filter((m) => m.fromMe)
+            const messageIndex = chatMessages?.findIndex(msg => msg.id === quotedMsgId);
+            if (messageIndex && messageIndex > 0) {
+                const previousMessage = chatMessages?.[messageIndex - 1];
+                const reminder = await Reminder.findOne({
+                    userPhoneNumber,
+                    messageId: previousMessage?.id || ""
+                });
+                if (reminder) {
+                    return reminder;
+                }
+            }
 
-        const lastBotMessage = messagesFromBot?.[messagesFromBot?.length - 1]
+            return null;
+        } else {
+            const chatMessages = await getAllMessagesFromChat(userPhoneNumber)
 
-        // just created the reminder
-        if (lastBotMessage?.body?.startsWith("Lembrete criado para")) {
-            const reminder = await Reminder.findOne({ userPhoneNumber }).sort({ createdAt: -1 })
+            const messagesFromBot = chatMessages?.filter((m) => m.fromMe)
+
+            const lastBotMessage = messagesFromBot?.[messagesFromBot?.length - 1]
+
+            // just created the reminder
+            if (lastBotMessage?.body?.startsWith("Lembrete criado para")) {
+                const reminder = await Reminder.findOne({ userPhoneNumber }).sort({ createdAt: -1 })
+
+                return reminder;
+            }
+
+            const reminder = await Reminder.findOne({ userPhoneNumber, title: stripReminderPrefix(lastBotMessage?.body?.trim() || "") })
 
             return reminder;
         }
-
-        const reminder = await Reminder.findOne({ userPhoneNumber, title: stripReminderPrefix(lastBotMessage?.body?.trim() || "") })
-
-        return reminder;
     }
-}
 

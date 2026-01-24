@@ -11,6 +11,21 @@ export function formatDateToBrazilianTimezone(date: Date): string {
     return brazilTime.toISOString().slice(0, 19).replace('T', ' ');
 }
 
+export function getBrazilWeekday(): string {
+    // Get current weekday in Brazil timezone
+    const brazilDate = new Date(getBrazilTime());
+    const weekdays = [
+        'domingo',
+        'segunda-feira',
+        'terça-feira',
+        'quarta-feira',
+        'quinta-feira',
+        'sexta-feira',
+        'sábado'
+    ];
+    return weekdays[brazilDate.getDay()]!;
+}
+
 export function formatFriendlyDateTime(date: Date): string {
     const today = new Date(getBrazilTime());
     const tomorrow = new Date(getBrazilTime());

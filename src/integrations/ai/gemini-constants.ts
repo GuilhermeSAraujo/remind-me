@@ -29,10 +29,10 @@ Examples:
 "Ajuda" -> help
 `;
 
-export const PROMPT_EXTRACT_REMINDER_DATA = (message: string, currentDateTime: string) => `
+export const PROMPT_EXTRACT_REMINDER_DATA = (message: string, currentDateTime: string, weekday: string) => `
 You are given a message from a user and you need to EXTRACT the reminder data from the message.
 The user message is: ${message}
-Current date and time is: ${currentDateTime}
+Current date and time is: ${currentDateTime}. The weekday is ${weekday}.
 
  Extract ALL reminders from the message. If there's only one reminder, return an array with one element.
 Respond ONLY with a valid JSON ARRAY in PLAINTEXT format with the following structure:

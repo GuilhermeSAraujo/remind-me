@@ -2,7 +2,7 @@ import { generateContentWithContext } from "../../integrations/ai/gemini-client"
 import { PROMPT_EXTRACT_REMINDER_DATA } from "../../integrations/ai/gemini-constants";
 import { Reminder } from "./reminder.model";
 import { UserData } from "../../api/middlewares/user-extractor.middleware";
-import { formatFriendlyDateTime, getBrazilTime } from "../../shared/utils/date.utils";
+import { formatFriendlyDateTime, getBrazilTime, getBrazilWeekday } from "../../shared/utils/date.utils";
 import { sendMessage } from "../../integrations/whatsapp/send-message";
 
 export async function scheduleReminder({
@@ -50,7 +50,7 @@ interface ReminderData {
 async function extractReminderData(message: string, userId: string): Promise<ReminderData[]> {
     let reminderData = await generateContentWithContext(
         userId,
-        PROMPT_EXTRACT_REMINDER_DATA(message, getBrazilTime()),
+        PROMPT_EXTRACT_REMINDER_DATA(message, getBrazilTime(), getBrazilWeekday()),
         'extract'
     );
 

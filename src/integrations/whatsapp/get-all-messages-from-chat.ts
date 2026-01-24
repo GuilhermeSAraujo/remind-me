@@ -20,7 +20,7 @@ export async function getAllMessagesFromChat(phoneNumber: string) {
             return null;
         }
 
-        const data = await response.json() as { response: { fromMe: boolean; from: string; to: string; content: string; body: string }[] };
+        const data = await response.json() as { response: { id: string; fromMe: boolean; from: string; to: string; content: string; body: string }[] };
         return data.response;
     } catch (error) {
         console.error("[GET ALL MESSAGES FROM CHAT] 🚨 Unexpected ERROR:", error);
