@@ -43,7 +43,7 @@ export async function scheduleReminder({
 interface ReminderData {
     title: string;
     date: string;
-    recurrence_type: "daily" | "weekly" | "monthly" | "yearly" | "none";
+    recurrence_type: "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "none";
     recurrence_interval: number;
 }
 
@@ -61,6 +61,7 @@ async function extractReminderData(message: string, userId: string): Promise<Rem
 
 function formatReminderCreatedMessage(reminderData: ReminderData): string {
     const recurrenceTypePtBr: Record<string, string> = {
+        hourly: reminderData.recurrence_interval === 1 ? "hora" : "horas",
         daily: reminderData.recurrence_interval === 1 ? "dia" : "dias",
         weekly: reminderData.recurrence_interval === 1 ? "semana" : "semanas",
         monthly: reminderData.recurrence_interval === 1 ? "mês" : "meses",
@@ -79,6 +80,7 @@ function formatReminderCreatedMessage(reminderData: ReminderData): string {
 
 function formatMultipleRemindersCreatedMessage(remindersData: ReminderData[]): string {
     const recurrenceTypePtBr: Record<string, string> = {
+        hourly: "hora",
         daily: "dia",
         weekly: "semana",
         monthly: "mês",

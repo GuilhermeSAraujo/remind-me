@@ -17,6 +17,7 @@ export async function listReminders({ userData }: { userData: UserData }) {
     }
 
     const recurrenceTypePtBr: Record<string, string> = {
+        hourly: "hora(s)",
         daily: "dia(s)",
         weekly: "semana(s)",
         monthly: "mês(es)",

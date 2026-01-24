@@ -34,13 +34,13 @@ You are given a message from a user and you need to EXTRACT the reminder data fr
 The user message is: ${message}
 Current date and time is: ${currentDateTime}. The weekday is ${weekday}.
 
- Extract ALL reminders from the message. If there's only one reminder, return an array with one element.
+Extract ALL reminders from the message. If there's only one reminder, return an array with one element.
 Respond ONLY with a valid JSON ARRAY in PLAINTEXT format with the following structure:
 [
     {
         title string
         date string
-        recurrence_type daily | weekly | monthly | yearly | none
+        recurrence_type hourly | daily | weekly | monthly | yearly | none
         recurrence_interval number
     }
 ]

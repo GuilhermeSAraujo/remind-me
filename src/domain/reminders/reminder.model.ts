@@ -5,7 +5,7 @@ export interface IReminder extends Document {
     title: string;
     scheduledTime: Date;
     messageId: string;
-    recurrence_type: "daily" | "weekly" | "monthly" | "yearly" | "none";
+    recurrence_type: "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "none";
     recurrence_interval: number;
     status: "pending" | "sent" | "cancelled";
     createdAt: Date;
@@ -34,7 +34,7 @@ const ReminderSchema = new Schema<IReminder>(
         },
         recurrence_type: {
             type: String,
-            enum: ["daily", "weekly", "monthly", "yearly", "none"],
+            enum: ["hourly", "daily", "weekly", "monthly", "yearly", "none"],
             default: "none",
         },
         recurrence_interval: {
