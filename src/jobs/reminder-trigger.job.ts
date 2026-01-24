@@ -2,6 +2,7 @@ import { Reminder } from "../domain/reminders/reminder.model";
 import { getBrazilTime } from "../shared/utils/date.utils";
 import { sendMessage } from "../integrations/whatsapp/send-message";
 import { getRandomPrefix } from "../shared/utils/reminder-prefix.utils";
+import { calculateNextScheduledTime } from "../domain/reminders/recurrence.utils";
 
 export async function triggerReminders() {
     const now = new Date(getBrazilTime());
@@ -58,36 +59,5 @@ export async function triggerReminders() {
     }
 
     console.info(`[CRON] Completed - sent ${reminders.length - failedReminders} reminders`);
-}
-
-function calculateNextScheduledTime(
-    currentTime: Date,
-    recurrenceType: "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "none",
-    recurrenceInterval: number
-): Date {
-    const nextTime = new Date(currentTime);
-
-    switch (recurrenceType) {
-        case "hourly":
-            nextTime.setHours(nextTime.getHours() + recurrenceInterval);
-            break;
-        case "daily":
-            nextTime.setDate(nextTime.getDate() + recurrenceInterval);
-            break;
-        case "weekly":
-            nextTime.setDate(nextTime.getDate() + (7 * recurrenceInterval));
-            break;
-        case "monthly":
-            nextTime.setMonth(nextTime.getMonth() + recurrenceInterval);
-            break;
-        case "yearly":
-            nextTime.setFullYear(nextTime.getFullYear() + recurrenceInterval);
-            break;
-        default:
-            // Should not reach here, but return current time as fallback
-            return nextTime;
-    }
-
-    return nextTime;
 }
 

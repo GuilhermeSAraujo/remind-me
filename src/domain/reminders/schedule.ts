@@ -4,6 +4,7 @@ import { Reminder } from "./reminder.model";
 import { UserData } from "../../api/middlewares/user-extractor.middleware";
 import { formatFriendlyDateTime, getBrazilTime, getBrazilWeekday } from "../../shared/utils/date.utils";
 import { sendMessage } from "../../integrations/whatsapp/send-message";
+import { calculateNextScheduledTime } from "./recurrence.utils";
 
 export async function scheduleReminder({
     userData,
@@ -18,11 +19,23 @@ export async function scheduleReminder({
 
     // Criar todos os lembretes
     for (const reminderData of remindersData) {
+        let scheduledTime = new Date(reminderData.date);
+        const now = new Date(getBrazilTime());
+
+        // Se a data agendada está no passado E existe recorrência, reagendar para próxima ocorrência
+        if (scheduledTime < now && reminderData.recurrence_type !== "none") {
+            scheduledTime = calculateNextScheduledTime(
+                scheduledTime,
+                reminderData.recurrence_type,
+                reminderData.recurrence_interval
+            );
+        }
+
         await Reminder.create({
             messageId: messageId,
             userPhoneNumber: userData.phoneNumber,
             title: reminderData.title.charAt(0).toUpperCase() + reminderData.title.slice(1),
-            scheduledTime: new Date(reminderData.date),
+            scheduledTime: scheduledTime,
             recurrence_type: reminderData.recurrence_type,
             recurrence_interval: reminderData.recurrence_interval,
             status: "pending",
