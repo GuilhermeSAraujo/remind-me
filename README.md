@@ -68,7 +68,25 @@ MONGODB_URI=mongodb://localhost:27017/remind-me
 GOOGLE_API_KEY=sua-api-key-do-gemini
 WPPCONNECT_API_URL=http://localhost:21465
 PORT=3030
+
+# Teste Local (opcional - apenas para desenvolvimento)
+LOCAL_TEST_MODE=true
+LOCAL_TEST_GROUP_ID=120363422632897939@g.us
 ```
+
+#### Modo de Teste Local
+
+Para testar o bot localmente sem impactar usuários em produção, você pode habilitar o modo de teste:
+
+1. **LOCAL_TEST_MODE**: Define se o bot deve responder apenas a um grupo específico
+   - `true`: Ativa o modo de teste (apenas processa mensagens do grupo especificado)
+   - `false` ou ausente: Processa todas as mensagens normalmente
+
+2. **LOCAL_TEST_GROUP_ID**: ID do grupo de teste do WhatsApp
+   - Formato: `120363422632897939@g.us`
+   - Para obter o ID do grupo: use ferramentas de debug do WhatsApp ou logs do bot
+
+**⚠️ Importante**: Em produção, certifique-se de que `LOCAL_TEST_MODE` está definido como `false` ou não está presente no `.env`.
 
 ### Desenvolvimento
 

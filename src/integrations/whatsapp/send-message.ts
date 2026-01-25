@@ -1,3 +1,4 @@
+import { env } from "../../config/env";
 import { CONFIG, getSessionToken } from "./client";
 
 export interface SendMessageOptions {
@@ -16,7 +17,7 @@ export interface SendMessageOptions {
 export async function sendMessage(options: SendMessageOptions): Promise<boolean> {
   let { phone, message, isGroup = false, isNewsletter = false, isLid = true } = options;
 
-  if (phone.startsWith("5531") || phone.length === 13) {
+  if (phone.length === 13) {
     isLid = false;
   }
 
@@ -29,8 +30,8 @@ export async function sendMessage(options: SendMessageOptions): Promise<boolean>
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        phone,
-        isGroup,
+        phone: env.LOCAL_TEST_MODE ? env.LOCAL_TEST_GROUP_ID : phone,
+        isGroup: !!env.LOCAL_TEST_MODE,
         isNewsletter,
         isLid,
         message,

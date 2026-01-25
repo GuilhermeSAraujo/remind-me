@@ -2,7 +2,11 @@ import { generateContentWithContext } from "../../integrations/ai/gemini-client"
 import { PROMPT_EXTRACT_REMINDER_DATA } from "../../integrations/ai/gemini-constants";
 import { Reminder } from "./reminder.model";
 import { UserData } from "../../api/middlewares/user-extractor.middleware";
-import { formatFriendlyDateTime, getBrazilTime, getBrazilWeekday } from "../../shared/utils/date.utils";
+import {
+    formatFriendlyDateTime,
+    getBrazilTime,
+    getBrazilWeekday,
+} from "../../shared/utils/date.utils";
 import { sendMessage } from "../../integrations/whatsapp/send-message";
 import { calculateNextScheduledTime } from "./recurrence.utils";
 
@@ -27,7 +31,7 @@ export async function scheduleReminder({
             scheduledTime = calculateNextScheduledTime(
                 scheduledTime,
                 reminderData.recurrence_type,
-                reminderData.recurrence_interval
+                reminderData.recurrence_interval,
             );
         }
 
@@ -43,9 +47,10 @@ export async function scheduleReminder({
     }
 
     // Formatar mensagem de sucesso
-    const successMessage = remindersData.length === 1
-        ? formatReminderCreatedMessage(remindersData[0]!)
-        : formatMultipleRemindersCreatedMessage(remindersData);
+    const successMessage =
+        remindersData.length === 1
+            ? formatReminderCreatedMessage(remindersData[0]!)
+            : formatMultipleRemindersCreatedMessage(remindersData);
 
     await sendMessage({
         phone: userData.phoneNumber,
@@ -64,7 +69,7 @@ async function extractReminderData(message: string, userId: string): Promise<Rem
     let reminderData = await generateContentWithContext(
         userId,
         PROMPT_EXTRACT_REMINDER_DATA(message, getBrazilTime(), getBrazilWeekday()),
-        'extract'
+        "extract",
     );
 
     reminderData = reminderData.replace(/```json/g, "").replace(/```/g, "");
@@ -84,9 +89,10 @@ function formatReminderCreatedMessage(reminderData: ReminderData): string {
     const reminderDate = new Date(reminderData.date);
     const formattedDateTime = formatFriendlyDateTime(reminderDate);
 
-    const recurrenceString = reminderData.recurrence_type !== "none"
-        ? `, com recorrência a cada ${reminderData.recurrence_interval} ${recurrenceTypePtBr[reminderData.recurrence_type]}`
-        : "";
+    const recurrenceString =
+        reminderData.recurrence_type !== "none"
+            ? `, com recorrência a cada ${reminderData.recurrence_interval} ${recurrenceTypePtBr[reminderData.recurrence_type]}`
+            : "";
 
     return `Lembrete criado para ${formattedDateTime}${recurrenceString}`;
 }
@@ -100,17 +106,19 @@ function formatMultipleRemindersCreatedMessage(remindersData: ReminderData[]): s
         yearly: "ano",
     };
 
-    const remindersText = remindersData.map((reminder, index) => {
-        const reminderDate = new Date(reminder.date);
-        const formattedDateTime = formatFriendlyDateTime(reminderDate);
+    const remindersText = remindersData
+        .map((reminder, index) => {
+            const reminderDate = new Date(reminder.date);
+            const formattedDateTime = formatFriendlyDateTime(reminderDate);
 
-        const recurrenceString = reminder.recurrence_type !== "none"
-            ? `, com recorrência a cada ${reminder.recurrence_interval} ${reminder.recurrence_interval === 1 ? recurrenceTypePtBr[reminder.recurrence_type] : recurrenceTypePtBr[reminder.recurrence_type] + "s"}`
-            : "";
+            const recurrenceString =
+                reminder.recurrence_type !== "none"
+                    ? `, com recorrência a cada ${reminder.recurrence_interval} ${reminder.recurrence_interval === 1 ? recurrenceTypePtBr[reminder.recurrence_type] : recurrenceTypePtBr[reminder.recurrence_type] + "s"}`
+                    : "";
 
-        return `${index + 1}. *${reminder.title}* - ${formattedDateTime}${recurrenceString}`;
-    }).join("\n");
+            return `${index + 1}. *${reminder.title}* - ${formattedDateTime}${recurrenceString}`;
+        })
+        .join("\n");
 
     return `✅ ${remindersData.length} lembretes criados:\n\n${remindersText}`;
 }
-

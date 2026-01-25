@@ -13,12 +13,12 @@ interface DelayData {
 async function extractDelayData(
     userMessage: string,
     currentScheduledTime: string,
-    userId: string
+    userId: string,
 ): Promise<DelayData> {
     let delayData = await generateContentWithContext(
         userId,
         PROMPT_IDENTIFY_DELAY(userMessage, currentScheduledTime),
-        'identify_delay'
+        "identify_delay",
     );
 
     delayData = delayData.replace(/```json/g, "").replace(/```/g, "");
@@ -26,8 +26,19 @@ async function extractDelayData(
     return JSON.parse(delayData) as DelayData;
 }
 
-export async function delayReminder({ userMessage, userData, quotedMsgId }: { userMessage: string, userData: UserData, quotedMsgId?: string }) {
-    const reminder = await findReminderByMessageIdOrTextOrLastMessage(userData.phoneNumber, quotedMsgId);
+export async function delayReminder({
+    userMessage,
+    userData,
+    quotedMsgId,
+}: {
+    userMessage: string;
+    userData: UserData;
+    quotedMsgId?: string;
+}) {
+    const reminder = await findReminderByMessageIdOrTextOrLastMessage(
+        userData.phoneNumber,
+        quotedMsgId,
+    );
 
     if (!reminder) {
         await sendMessage({
@@ -59,7 +70,7 @@ export async function delayReminder({ userMessage, userData, quotedMsgId }: { us
         const delayData = await extractDelayData(
             userMessage,
             currentScheduledTime,
-            userData.phoneNumber
+            userData.phoneNumber,
         );
 
         reminder.scheduledTime = new Date(delayData.newScheduledTime);
@@ -75,10 +86,9 @@ export async function delayReminder({ userMessage, userData, quotedMsgId }: { us
         console.error("[DELAY REMINDER] Failed to extract or parse delay data:", error);
         await sendMessage({
             phone: userData.phoneNumber,
-            message: "Erro ao processar o adiamento. Tente novamente com um formato válido (ex: '30 minutos', '2 dias', 'Dia 10/05 às 09:00').",
+            message:
+                "Erro ao processar o adiamento. Tente novamente com um formato válido (ex: '30 minutos', '2 dias', 'Dia 10/05 às 09:00').",
         });
         await reactMessage(userData.messageId, "🚫");
     }
-
-
 }

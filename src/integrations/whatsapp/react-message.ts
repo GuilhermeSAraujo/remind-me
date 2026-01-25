@@ -18,7 +18,7 @@ export async function reactMessage(messageId: string, reaction: string): Promise
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ msgId: messageId, reaction }),
-      }
+      },
     );
 
     const text = await response.text();
@@ -34,4 +34,3 @@ export async function reactMessage(messageId: string, reaction: string): Promise
     return false;
   }
 }
-

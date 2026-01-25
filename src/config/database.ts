@@ -17,4 +17,3 @@ const connection = await connectDB();
 
 export { connection };
 export default mongoose.connection;
-

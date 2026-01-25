@@ -1,6 +1,7 @@
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { CONFIG, getSessionToken } from "./client";
+import { env } from "../../config/env";
 
 export interface SendImageOptions {
     phone: string;
@@ -30,18 +31,19 @@ function getMimeType(imagePath: string): string {
  * @param imagePath - Path to the image file relative to the assets folder
  * @returns Promise<boolean> - True if image was sent successfully
  */
-export async function sendImage(
-    options: SendImageOptions,
-    imagePath: string
-): Promise<boolean> {
-    const {
+export async function sendImage(options: SendImageOptions, imagePath: string): Promise<boolean> {
+    let {
         phone,
         filename,
         caption = "",
         isGroup = false,
         isNewsletter = false,
-        isLid = false,
+        isLid = true,
     } = options;
+
+    if (phone.length === 13) {
+        isLid = false;
+    }
 
     try {
         // Em produção (bundled), process.cwd() aponta para /app e assets está em /app/dist/assets
@@ -57,26 +59,23 @@ export async function sendImage(
         const mimeType = getMimeType(imagePath);
         const base64Image = `data:${mimeType};base64,${imageBuffer.toString("base64")}`;
 
-        const response = await fetch(
-            `${CONFIG.API_BASE_URL}/api/${CONFIG.SESSION_NAME}/send-image`,
-            {
-                method: "POST",
-                headers: {
-                    accept: "*/*",
-                    Authorization: `Bearer ${await getSessionToken()}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    phone,
-                    isGroup,
-                    isNewsletter,
-                    isLid,
-                    filename,
-                    caption,
-                    base64: base64Image,
-                }),
-            }
-        );
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/${CONFIG.SESSION_NAME}/send-image`, {
+            method: "POST",
+            headers: {
+                accept: "*/*",
+                Authorization: `Bearer ${await getSessionToken()}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                phone: env.LOCAL_TEST_MODE ? env.LOCAL_TEST_GROUP_ID : phone,
+                isGroup,
+                isNewsletter,
+                isLid,
+                filename,
+                caption,
+                base64: base64Image,
+            }),
+        });
 
         if (!response.ok) {
             const text = await response.text();
@@ -90,4 +89,3 @@ export async function sendImage(
         return false;
     }
 }
-

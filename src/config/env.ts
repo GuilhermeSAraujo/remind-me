@@ -14,6 +14,12 @@ export const env = createEnv({
         MONGODB_URI: z.url(),
         GOOGLE_API_KEY: z.string().min(1),
         WPPCONNECT_API_URL: z.url().default("http://localhost:21465"),
+        LOCAL_TEST_MODE: z
+            .string()
+            .optional()
+            .default("false")
+            .transform((val) => val === "true"),
+        LOCAL_TEST_GROUP_ID: z.string().optional(),
     },
     runtimeEnv: process.env,
     emptyStringAsUndefined: true,

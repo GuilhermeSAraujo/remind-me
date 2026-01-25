@@ -3,8 +3,13 @@ import { PremiumPayment, IPremiumPayment } from "../domain/payments/premium-paym
 import { User } from "../domain/users/user.model";
 import { sendMessage } from "../integrations/whatsapp/send-message";
 import { PREMIUM_WELCOME_MESSAGE } from "../integrations/whatsapp/constants";
+import { env } from "../config/env";
 
 const startPremiumPaymentWatcher = async () => {
+    if (env.LOCAL_TEST_MODE) {
+        return;
+    }
+
     try {
         console.info("[PREMIUM WATCHER] Starting Premium Payment Change Stream...");
 
