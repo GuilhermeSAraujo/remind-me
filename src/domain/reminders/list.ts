@@ -22,6 +22,8 @@ export async function listReminders({ userData }: { userData: UserData }) {
         weekly: "semana(s)",
         monthly: "mês(es)",
         yearly: "ano(s)",
+        weekday: "dia útil",
+        weekend: "fim de semana",
         none: "",
     };
 
