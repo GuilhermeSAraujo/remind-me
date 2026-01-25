@@ -49,6 +49,20 @@ Respond ONLY with a valid JSON ARRAY in PLAINTEXT format with the following stru
     }
 ]
 
+IMPORTANT RULES FOR CALCULATING THE FIRST OCCURRENCE:
+
+For recurrence_type "weekday" (Monday-Friday):
+- Schedule for the NEXT weekday from now
+- If today is weekend (Saturday/Sunday), schedule for next Monday
+
+For recurrence_type "weekend" (Saturday/Sunday):
+- Schedule for the NEXT weekend day from now
+- If today is a weekday, schedule for next Saturday
+
+For all other recurrence types (hourly, daily, weekly, monthly, yearly):
+- Schedule for the first occurrence that makes sense based on the message
+- If the time has already passed today, schedule for the next appropriate occurrence
+
 Example: Me lembre de comprar pão 14h
 [
     {
@@ -89,7 +103,7 @@ Example: Me lembre de fazer exercício nos dias de semana às 7h
 [
     {
         title: "Fazer exercício",
-        date: "2026-01-27 07:00:00",
+        date: "2026-01-26 07:00:00",
         recurrence_type: "weekday",
         recurrence_interval: 1
     }
@@ -109,7 +123,7 @@ Example: Me lembre durante os dias úteis às 13h de trabalhar
 [
     {
         title: "Trabalhar",
-        date: "2026-01-27 13:00:00",
+        date: "2026-01-26 13:00:00",
         recurrence_type: "weekday",
         recurrence_interval: 1
     }

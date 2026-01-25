@@ -61,7 +61,15 @@ export async function scheduleReminder({
 interface ReminderData {
     title: string;
     date: string;
-    recurrence_type: "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "weekday" | "weekend" | "none";
+    recurrence_type:
+    | "hourly"
+    | "daily"
+    | "weekly"
+    | "monthly"
+    | "yearly"
+    | "weekday"
+    | "weekend"
+    | "none";
     recurrence_interval: number;
 }
 
