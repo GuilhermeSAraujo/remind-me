@@ -8,6 +8,7 @@ import { reactMessage } from "./integrations/whatsapp/react-message";
 import { startSession } from "./integrations/whatsapp/client";
 import "./config/database";
 import "./jobs/scheduler";
+import "./jobs/premium-payment.watcher";
 
 type Variables = {
     messageBody: MessagePayload;
