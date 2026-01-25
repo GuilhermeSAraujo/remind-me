@@ -22,9 +22,8 @@ export async function extractUserData(c: Context, next: Next) {
     }
 
     c.set("messageBody", body);
-    console.log(JSON.stringify(body, null, 2));
 
-    if (body.isGroupMsg) {
+    if (!env.LOCAL_TEST_MODE && body.isGroupMsg) {
       return c.body(null, 204);
     }
 
