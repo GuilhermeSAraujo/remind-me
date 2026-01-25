@@ -12,7 +12,7 @@ export async function deleteReminder({ userData, quotedMsgId }: { userData: User
         return;
     }
 
-    await Reminder.deleteOne({ _id: reminder._id, userPhoneNumber: userData.phoneNumber, messageId: quotedMsgId });
+    await Reminder.deleteOne({ _id: reminder._id, userPhoneNumber: userData.phoneNumber });
 
     await sendMessage({
         phone: userData.phoneNumber,
