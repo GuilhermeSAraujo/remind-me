@@ -41,7 +41,7 @@ export async function sendImage(options: SendImageOptions, imagePath: string): P
         isLid = true,
     } = options;
 
-    if (phone.length === 13) {
+    if (phone.length === 12) {
         isLid = false;
     }
 

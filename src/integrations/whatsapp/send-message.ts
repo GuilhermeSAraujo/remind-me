@@ -17,7 +17,7 @@ export interface SendMessageOptions {
 export async function sendMessage(options: SendMessageOptions): Promise<boolean> {
   let { phone, message, isGroup = false, isNewsletter = false, isLid = true } = options;
 
-  if (phone.length === 13) {
+  if (phone.length === 12) {
     isLid = false;
   }
 
