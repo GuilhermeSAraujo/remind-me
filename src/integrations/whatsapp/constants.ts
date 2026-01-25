@@ -18,15 +18,21 @@ Se deseja adiar um lembrete:
 const PREMIUM_LINK = (phoneNumber: string) =>
     `https://create-payment-689285001769.southamerica-east1.run.app/payment-link/${phoneNumber}`;
 
-export const RATE_LIMIT_MESSAGE = (remaining: number, resetInHours: number, phoneNumber: string) => {
+export const RATE_LIMIT_MESSAGE = (
+    remaining: number,
+    resetInHours: number,
+    phoneNumber: string,
+) => {
     if (remaining === 0) {
-        return `⚠️ *Limite diário atingido*\n\n` +
+        return (
+            `⚠️ *Limite diário atingido*\n\n` +
             `Você atingiu seu limite de ${5} interações gratuitas nas últimas 24 horas.\n\n` +
             `✅ Seus lembretes continuarão funcionando normalmente.\n\n` +
             `✨ *Quer acesso ilimitado?*\n` +
             `Assine o plano Premium por apenas R$ 4,90 e crie lembretes sem limites!\n\n` +
             `🔗 Conheça:\n${PREMIUM_LINK(phoneNumber)}\n\n` +
-            `⏰ Seu limite será renovado em ${Math.ceil(resetInHours)} horas.`;
+            `⏰ Seu limite será renovado em ${Math.ceil(resetInHours)} horas.`
+        );
     }
     //  else if (remaining <= 1 && remaining !== -1) {
     //     return `⚠️ *Atenção:* Você tem apenas ${remaining} ${remaining === 1 ? 'interação restante' : 'interações restantes'} nas próximas 24 horas.`;
@@ -54,7 +60,7 @@ export const FREE_USER_REMINDER_LIMIT_MESSAGE = (phoneNumber: string) =>
 
 export const PREMIUM_WELCOME_MESSAGE = `🎉 *Bem-vindo ao Premium!*
 
-Olá! Seu pagamento foi confirmado e agora você tem acesso premium!.
+Olá! Seu pagamento foi confirmado e agora você tem acesso premium!
 
 Aproveite os benefícios:
 ✨ Lembretes ilimitados
