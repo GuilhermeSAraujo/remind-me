@@ -22,6 +22,11 @@ export async function extractUserData(c: Context, next: Next) {
     }
 
     c.set("messageBody", body);
+    console.log(JSON.stringify(body, null, 2));
+
+    if (body.isGroupMsg) {
+      return c.body(null, 204);
+    }
 
     if (body.event === "onmessage" && body.sender && body.body) {
       const phoneNumber = body.from?.split?.("@")[0] || "";

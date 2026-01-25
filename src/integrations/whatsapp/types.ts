@@ -14,6 +14,7 @@ export interface MessagePayload {
   // Campos adicionais do WPPConnect para contatos não salvos
   notifyName?: string; // Nome do perfil do WhatsApp do remetente
   pushname?: string; // Push name alternativo
+  isGroupMsg?: boolean;
 }
 
 export interface ApiResponse {
@@ -27,4 +28,3 @@ export interface UserData {
   name: string;
   messageId: string;
 }
-
