@@ -61,7 +61,7 @@ export async function scheduleReminder({
 interface ReminderData {
     title: string;
     date: string;
-    recurrence_type: "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "none";
+    recurrence_type: "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "weekday" | "weekend" | "none";
     recurrence_interval: number;
 }
 
@@ -84,6 +84,8 @@ function formatReminderCreatedMessage(reminderData: ReminderData): string {
         weekly: reminderData.recurrence_interval === 1 ? "semana" : "semanas",
         monthly: reminderData.recurrence_interval === 1 ? "mês" : "meses",
         yearly: reminderData.recurrence_interval === 1 ? "ano" : "anos",
+        weekday: "dia útil",
+        weekend: "fim de semana",
     };
 
     const reminderDate = new Date(reminderData.date);
@@ -104,6 +106,8 @@ function formatMultipleRemindersCreatedMessage(remindersData: ReminderData[]): s
         weekly: "semana",
         monthly: "mês",
         yearly: "ano",
+        weekday: "dia útil",
+        weekend: "fim de semana",
     };
 
     const remindersText = remindersData

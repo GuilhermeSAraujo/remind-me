@@ -1,18 +1,29 @@
 export const HELP_MESSAGE = `Olá! Sou o bot de lembretes. 📝
 
-Para começar a utilizar, envie uma mensagem como:
-- "Lembre-me de tomar creatina todo dia às 9h"
-- "Me lembre de comprar pão às 14h"
-- "Lembrete para abastecer o carro toda semana 19:30"
+*Como criar lembretes:*
+Envie uma mensagem natural, como:
 
-Se quiser ver os seus lembretes, envie:
-- Listar lembretes
+_Lembretes pontuais:_
+• "Me lembre de comprar pão hoje às 14h"
+• "Lembrete para reunião amanhã 15:30"
 
-Se quiser deletar um lembrete:
-- Responda a mensagem do lembrete que deseja deletar com a palavra "Apagar"
+_Lembretes recorrentes:_
+• "Lembre-me de tomar creatina todo dia às 9h"
+• "Me lembre de abastecer o carro toda semana às 19:30"
+• "Me lembre de academia nos dias úteis às 7h"
+• "Me lembre de descansar aos finais de semana às 10h"
 
-Se deseja adiar um lembrete:
-- Responda a mensagem do lembrete que deseja adiar com a palavra "Adiar" e informe o tempo desejado, ou data específica.
+*Como gerenciar lembretes:*
+
+_Ver seus lembretes:_
+• Envie: "Listar lembretes" ou "Ver meus lembretes"
+
+_Deletar um lembrete:_
+• Responda a mensagem do lembrete com "Apagar" ou "Deletar"
+
+_Adiar um lembrete:_
+• Responda a mensagem do lembrete com "Adiar" e o tempo desejado
+• Exemplo: "Adiar 30 minutos" ou "Adiar para amanhã"
 `;
 
 const PREMIUM_LINK = (phoneNumber: string) =>

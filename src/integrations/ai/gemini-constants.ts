@@ -44,7 +44,7 @@ Respond ONLY with a valid JSON ARRAY in PLAINTEXT format with the following stru
     {
         title string
         date string
-        recurrence_type hourly | daily | weekly | monthly | yearly | none
+        recurrence_type hourly | daily | weekly | monthly | yearly | weekday | weekend | none
         recurrence_interval number
     }
 ]
@@ -81,6 +81,36 @@ Example: Me lembre de lavar louça toda terça-feira 14h e de ir ao mercado toda
         title: "Ir ao mercado",
         date: "2026-01-22 19:00:00",
         recurrence_type: "weekly",
+        recurrence_interval: 1
+    }
+]
+
+Example: Me lembre de fazer exercício nos dias de semana às 7h
+[
+    {
+        title: "Fazer exercício",
+        date: "2026-01-27 07:00:00",
+        recurrence_type: "weekday",
+        recurrence_interval: 1
+    }
+]
+
+Example: Me lembre de descansar aos finais de semana às 10h
+[
+    {
+        title: "Descansar",
+        date: "2026-01-25 10:00:00",
+        recurrence_type: "weekend",
+        recurrence_interval: 1
+    }
+]
+
+Example: Me lembre durante os dias úteis às 13h de trabalhar
+[
+    {
+        title: "Trabalhar",
+        date: "2026-01-27 13:00:00",
+        recurrence_type: "weekday",
         recurrence_interval: 1
     }
 ]
