@@ -1,3 +1,4 @@
+import { sendMessage } from "../../integrations/whatsapp/send-message";
 import { IUser, User } from "./user.model";
 
 export class UserService {
@@ -10,6 +11,11 @@ export class UserService {
     if (!user) {
       // Create new user
       user = await User.create({ phoneNumber, name });
+
+      void sendMessage({
+        phone: "553199777722",
+        message: "Novo usuário criado: " + name,
+      });
     }
 
     return user;
