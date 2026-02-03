@@ -109,7 +109,7 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                 break;
 
             case "delete_reminder":
-                await deleteReminder({ userData, quotedMsgId: body.quotedMsgId });
+                await deleteReminder({ userData, quotedMsgId: body.quotedMsgId, messageText: body.body });
                 await reactMessage(userData.messageId, "🗑️");
                 break;
 

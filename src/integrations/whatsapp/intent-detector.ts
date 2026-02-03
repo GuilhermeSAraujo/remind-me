@@ -20,7 +20,7 @@ export const INTENT_PATTERNS: IntentPattern[] = [
     },
     {
         intent: 'delete_reminder',
-        pattern: /apaga|apague|deleta|delete|remove|remova|exclui|cancela|cancele/,
+        pattern: /apaga|apague|apagar|deleta|delete|deletar|remove|remova|remover|exclui|excluir|cancela|cancele|cancelar/,
         priority: 2
     },
     {

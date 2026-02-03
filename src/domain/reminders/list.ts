@@ -1,12 +1,9 @@
 import { UserData } from "../../api/middlewares/user-extractor.middleware";
 import { sendMessage } from "../../integrations/whatsapp/send-message";
-import { Reminder } from "./reminder.model";
+import { getRemindersInListOrder } from "./reminders-list-order.helper";
 
 export async function listReminders({ userData }: { userData: UserData }) {
-    const reminders = await Reminder.find({
-        userPhoneNumber: userData.phoneNumber,
-        status: "pending",
-    }).sort({ scheduledTime: 1 });
+    const reminders = await getRemindersInListOrder(userData.phoneNumber);
 
     if (reminders.length === 0) {
         await sendMessage({
@@ -46,7 +43,7 @@ export async function listReminders({ userData }: { userData: UserData }) {
         })
         .join("\n\n");
 
-    const message = `📋 *Seus Lembretes Pendentes (${reminders.length})*\n\n${remindersList}`;
+    const message = `📋 *Seus Lembretes Pendentes (${reminders.length})*\n\n${remindersList}\n\n💡 Você pode excluir um lembrete usando: apagar 1, deletar 2, remover 3, etc.`;
 
     await sendMessage({
         phone: userData.phoneNumber,
