@@ -234,7 +234,7 @@ app.get("/api-doc", (c) => {
     });
 });
 
-app.post("/message", extractUserData, async (c) => {
+app.post("", extractUserData, async (c) => {
     const body = c.get("messageBody");
 
     const userData = c.get("userData");
