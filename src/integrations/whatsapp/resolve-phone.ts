@@ -37,7 +37,7 @@ export async function resolvePhoneNumber(phone: string): Promise<string> {
       return phone;
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as Record<string, any>;
 
     const realPhone: string | undefined =
       data?.phoneNumber?.user ?? data?.phoneNumber?._serialized?.split("@")[0];
