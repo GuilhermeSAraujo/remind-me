@@ -1,11 +1,12 @@
 import { sendMessage } from "../../integrations/whatsapp/send-message";
+import { Reminder } from "../reminders/reminder.model";
 import { IUser, User } from "./user.model";
 
 export class UserService {
   /**
    * Find or create a user by phone number.
    * When `lidNumber` is provided and the user was previously stored with the LID,
-   * their phone number is migrated to the resolved real number.
+   * their phone number and all related reminders are migrated to the resolved real number.
    */
   async findOrCreateUser(phoneNumber: string, name: string, lidNumber?: string): Promise<IUser> {
     let user = await User.findOne({ phoneNumber });
@@ -15,7 +16,15 @@ export class UserService {
       if (user) {
         user.phoneNumber = phoneNumber;
         await user.save();
-        console.info(`[USER SERVICE] Migrated LID ${lidNumber} → ${phoneNumber} for ${name}`);
+
+        const { modifiedCount } = await Reminder.updateMany(
+          { userPhoneNumber: lidNumber },
+          { userPhoneNumber: phoneNumber },
+        );
+
+        console.info(
+          `[USER SERVICE] Migrated LID ${lidNumber} → ${phoneNumber} for ${name} (${modifiedCount} reminders updated)`,
+        );
       }
     }
 
