@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  remind-bot-wppconnect:
+    image: registry.local:5000/wppconnect-remind-bot:latest
+    networks:
+      - remind-bot-network
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == pi3
+    volumes:
+      - remind-bot-wppconnect-data:/usr/src/wpp-server/tokens
+
+  remind-bot:
+    image: registry.local:5000/remind-bot:latest
+    networks:
+      - remind-bot-network
+    deploy:
+      replicas: 1
+
+networks:
+  remind-bot-network:
+    driver: overlay
+
+volumes:
+  remind-bot-wppconnect-data:
