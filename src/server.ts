@@ -9,6 +9,7 @@ import { startSession } from "./integrations/whatsapp/client";
 import "./config/database";
 import "./jobs/scheduler";
 import "./jobs/premium-payment.watcher";
+import { env } from "./config/env";
 
 type Variables = {
     messageBody: MessagePayload;
@@ -234,7 +235,6 @@ app.get("/api-doc", (c) => {
 });
 
 app.post("/message", extractUserData, async (c) => {
-
     const body = c.get("messageBody");
 
     const userData = c.get("userData");
@@ -256,7 +256,6 @@ app.post("/message", extractUserData, async (c) => {
 
     await processMessage(body, userData);
 
-
     return c.json({
         success: true,
         message: "Message received",
@@ -271,7 +270,7 @@ app.get("/", (c) => {
     });
 });
 
-const port = Number(process.env.PORT) || 3030;
+const port = env.PORT;
 
 serve({
     fetch: app.fetch,
@@ -280,4 +279,3 @@ serve({
 
 console.info(`[SERVER] Running on http://localhost:${port}`);
 console.info(`[SERVER] Swagger UI available at http://localhost:${port}/swagger`);
-

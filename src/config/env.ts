@@ -1,12 +1,7 @@
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
-import { existsSync } from "fs";
 
-// Only load .env file if it exists (local development)
-// In Docker, env vars are injected by docker-compose
-if (existsSync(".env")) {
-    process.loadEnvFile(".env");
-}
+process.loadEnvFile(".env");
 
 export const env = createEnv({
     server: {
@@ -20,8 +15,8 @@ export const env = createEnv({
             .default("false")
             .transform((val) => val === "true"),
         LOCAL_TEST_GROUP_ID: z.string().optional(),
+        PORT: z.number().default(9002),
     },
     runtimeEnv: process.env,
     emptyStringAsUndefined: true,
 });
-
