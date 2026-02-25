@@ -59,7 +59,7 @@ export async function sendMessage(options: SendMessageOptions): Promise<boolean>
 
 function getNumber(phone: string, isLid: boolean): string {
   if (isLid) {
-    return `${phone}@lid`;
+    return `${phone}@c.us`;
   }
   return phone;
 }
