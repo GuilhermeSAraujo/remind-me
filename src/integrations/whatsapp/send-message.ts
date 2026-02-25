@@ -30,7 +30,7 @@ export async function sendMessage(options: SendMessageOptions): Promise<boolean>
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        phone: env.LOCAL_TEST_MODE ? env.LOCAL_TEST_GROUP_ID : phone,
+        phone: env.LOCAL_TEST_MODE ? env.LOCAL_TEST_GROUP_ID : getNumber(phone, isLid),
         isGroup: !!env.LOCAL_TEST_MODE,
         isNewsletter,
         isLid,
@@ -55,4 +55,11 @@ export async function sendMessage(options: SendMessageOptions): Promise<boolean>
     console.error("[SEND MESSAGE] 🚨 Unexpected ERROR:", error);
     return false;
   }
+}
+
+function getNumber(phone: string, isLid: boolean): string {
+  if (isLid) {
+    return `${phone}@lid`;
+  }
+  return phone;
 }
