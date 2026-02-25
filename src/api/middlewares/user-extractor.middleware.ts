@@ -3,6 +3,7 @@ import type { MessagePayload } from "../../integrations/whatsapp/types";
 import qrcode from "qrcode-terminal";
 import { UserService } from "../../domain/users/user.service";
 import { env } from "../../config/env";
+import { resolvePhoneNumber } from "../../integrations/whatsapp/resolve-phone";
 
 export interface UserData {
   phoneNumber: string;
@@ -27,7 +28,11 @@ export async function extractUserData(c: Context, next: Next) {
     }
 
     if (body.event === "onmessage" && body.sender && body.body) {
-      const phoneNumber = body.from?.split?.("@")[0] || "";
+      const parts = (body.from ?? "").split("@");
+      const rawNumber = parts[0] ?? "";
+      const suffix = parts[1] ?? "";
+      const lidNumber = suffix === "lid" ? rawNumber : undefined;
+      const phoneNumber = lidNumber ? await resolvePhoneNumber(rawNumber) : rawNumber;
 
       // Check if local test mode is enabled
       if (env.LOCAL_TEST_MODE) {
@@ -47,8 +52,7 @@ export async function extractUserData(c: Context, next: Next) {
       // Fallbacks para o nome quando o contato não está salvo
       const userName = body.sender?.name || body.notifyName || body.pushname || phoneNumber; // Último recurso: usar o próprio número como nome
 
-      // Use service to find or create user
-      const user = await userService.findOrCreateUser(phoneNumber, userName);
+      const user = await userService.findOrCreateUser(phoneNumber, userName, lidNumber);
 
       const userData: UserData = {
         phoneNumber: user.phoneNumber,

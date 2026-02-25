@@ -2,6 +2,7 @@ import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { CONFIG, getSessionToken } from "./client";
 import { env } from "../../config/env";
+import { resolvePhoneNumber } from "./resolve-phone";
 
 export interface SendImageOptions {
     phone: string;
@@ -9,7 +10,6 @@ export interface SendImageOptions {
     caption?: string;
     isGroup?: boolean;
     isNewsletter?: boolean;
-    isLid?: boolean;
 }
 
 /**
@@ -32,18 +32,13 @@ function getMimeType(imagePath: string): string {
  * @returns Promise<boolean> - True if image was sent successfully
  */
 export async function sendImage(options: SendImageOptions, imagePath: string): Promise<boolean> {
-    let {
-        phone,
+    const {
         filename,
         caption = "",
         isGroup = false,
         isNewsletter = false,
-        isLid = true,
     } = options;
-
-    if (phone.length === 12) {
-        isLid = false;
-    }
+    const phone = await resolvePhoneNumber(options.phone);
 
     try {
         // Em produção (bundled), process.cwd() aponta para /app e assets está em /app/dist/assets
@@ -70,7 +65,7 @@ export async function sendImage(options: SendImageOptions, imagePath: string): P
                 phone: env.LOCAL_TEST_MODE ? env.LOCAL_TEST_GROUP_ID : phone,
                 isGroup,
                 isNewsletter,
-                isLid,
+                isLid: false,
                 filename,
                 caption,
                 base64: base64Image,
