@@ -15,7 +15,7 @@ export const env = createEnv({
             .default("false")
             .transform((val) => val === "true"),
         LOCAL_TEST_GROUP_ID: z.string().optional(),
-        PORT: z.number().default(9002),
+        PORT: z.coerce.number().default(9002),
     },
     runtimeEnv: process.env,
     emptyStringAsUndefined: true,
