@@ -33,7 +33,7 @@ export async function sendMessage(options: SendMessageOptions): Promise<boolean>
         phone: env.LOCAL_TEST_MODE ? env.LOCAL_TEST_GROUP_ID : getNumber(phone, isLid),
         isGroup: !!env.LOCAL_TEST_MODE,
         isNewsletter,
-        isLid,
+        isLid: false,
         message,
       }),
     });
