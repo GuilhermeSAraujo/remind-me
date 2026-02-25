@@ -41,7 +41,7 @@ export async function sendMessage(options: SendMessageOptions): Promise<boolean>
     if (!response.ok) {
       const text = await response.text();
       console.error("[SEND MESSAGE] 🚨 API ERROR:", response.status, text, {
-        phone,
+        phone: getNumber(phone, isLid),
         isGroup,
         isNewsletter,
         isLid,
