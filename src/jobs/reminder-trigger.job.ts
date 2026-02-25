@@ -12,11 +12,11 @@ export async function triggerReminders() {
     // Find reminders that are pending and whose scheduled time has passed
     const reminders = await Reminder.find({
         status: "pending",
-        scheduledTime: { $lte: now }
+        scheduledTime: { $lte: new Date(now.getTime() + 3 * 60 * 60 * 1000) }, // + 3 hours
     });
 
     if (reminders.length === 0) {
-        return
+        return;
     }
 
     console.info(`[CRON] Processing ${reminders.length} reminders`);
@@ -30,7 +30,10 @@ export async function triggerReminders() {
             });
 
             if (!success) {
-                console.error(`[CRON] Failed to send reminder:`, { title: reminder.title, phone: reminder.userPhoneNumber });
+                console.error(`[CRON] Failed to send reminder:`, {
+                    title: reminder.title,
+                    phone: reminder.userPhoneNumber,
+                });
                 failedReminders++;
                 continue;
             }
@@ -40,24 +43,22 @@ export async function triggerReminders() {
                 const nextScheduledTime = calculateNextScheduledTime(
                     reminder.scheduledTime,
                     reminder.recurrence_type,
-                    reminder.recurrence_interval
+                    reminder.recurrence_interval,
                 );
 
-                await Reminder.updateOne(
-                    { _id: reminder._id },
-                    { scheduledTime: nextScheduledTime }
-                );
-
+                await Reminder.updateOne({ _id: reminder._id }, { scheduledTime: nextScheduledTime });
             } else {
                 // Non-recurring reminder, mark as sent
                 await Reminder.updateOne({ _id: reminder._id }, { status: "sent" });
-
             }
         } catch (error) {
-            console.error(`[CRON] Failed to send reminder:`, { title: reminder.title, phone: reminder.userPhoneNumber, error });
+            console.error(`[CRON] Failed to send reminder:`, {
+                title: reminder.title,
+                phone: reminder.userPhoneNumber,
+                error,
+            });
         }
     }
 
     console.info(`[CRON] Completed - sent ${reminders.length - failedReminders} reminders`);
 }
-

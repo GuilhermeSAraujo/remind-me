@@ -23,8 +23,8 @@ export async function scheduleReminder({
 
     // Criar todos os lembretes
     for (const reminderData of remindersData) {
-        let scheduledTime = new Date(reminderData.date);
-        const now = new Date(getBrazilTime());
+        let scheduledTime = new Date(new Date(reminderData.date).getTime() + 3 * 60 * 60 * 1000);
+        const now = new Date(new Date(getBrazilTime()).getTime() + 3 * 60 * 60 * 1000);
 
         // Se a data agendada está no passado E existe recorrência, reagendar para próxima ocorrência
         if (scheduledTime < now && reminderData.recurrence_type !== "none") {
