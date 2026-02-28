@@ -4,6 +4,9 @@ set -euo pipefail
 IMAGE="registry.local:5000/remind-bot:latest"
 STACK="remind-bot"
 
+echo "Pulling latest changes"
+git pull origin main
+
 echo "Building image: $IMAGE"
 docker build -t "$IMAGE" .
 
