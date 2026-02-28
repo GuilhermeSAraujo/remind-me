@@ -9,7 +9,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.hostname == pi2
+          - node.hostname == pi3
     volumes:
       - remind-bot-wppconnect-data:/usr/src/wpp-server/tokens
 
