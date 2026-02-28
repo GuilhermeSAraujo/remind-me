@@ -10,10 +10,9 @@ export async function listReminders({ userData }: { userData: UserData }) {
             phone: userData.phoneNumber,
             message: `Você não tem lembretes pendentes. 📭
             
-            Para criar um novo lembrete, envie:
-            - "Me lembre de comprar pão às 14h";
-            - "Criar lembrete para ir ao médico às 10h".
-            `,
+Para criar um novo lembrete, envie:
+- "Me lembre de comprar pão às 14h";
+- "Criar lembrete para ir ao médico às 10h".`,
         });
         return;
     }
