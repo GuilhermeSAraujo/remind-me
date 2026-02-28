@@ -3,7 +3,7 @@ import { PROMPT_IDENTIFY_DELAY } from "../../integrations/ai/gemini-constants";
 import { reactMessage } from "../../integrations/whatsapp/react-message";
 import { sendMessage } from "../../integrations/whatsapp/send-message";
 import { UserData } from "../../integrations/whatsapp/types";
-import { formatFriendlyDateTime } from "../../shared/utils/date.utils";
+import { formatFriendlyDateTime, parseBrazilDateString, toBrazilDateTimeString } from "../../shared/utils/date.utils";
 import { findReminderByMessageIdOrTextOrLastMessage } from "./find-reminder.helper";
 
 interface DelayData {
@@ -64,7 +64,7 @@ export async function delayReminder({
     }
 
     // send it to AI to extract the delay
-    const currentScheduledTime = reminder.scheduledTime.toISOString();
+    const currentScheduledTime = toBrazilDateTimeString(reminder.scheduledTime);
 
     try {
         const delayData = await extractDelayData(
@@ -73,7 +73,7 @@ export async function delayReminder({
             userData.phoneNumber,
         );
 
-        reminder.scheduledTime = new Date(delayData.newScheduledTime);
+        reminder.scheduledTime = parseBrazilDateString(delayData.newScheduledTime);
         reminder.status = "pending";
         await reminder.save();
 

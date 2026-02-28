@@ -1,18 +1,16 @@
 import { Reminder } from "../domain/reminders/reminder.model";
-import { getBrazilTime } from "../shared/utils/date.utils";
 import { sendMessage } from "../integrations/whatsapp/send-message";
 import { getRandomPrefix } from "../shared/utils/reminder-prefix.utils";
 import { calculateNextScheduledTime } from "../domain/reminders/recurrence.utils";
 
 export async function triggerReminders() {
-    const now = new Date(getBrazilTime());
+    const now = new Date();
 
-    console.info(`[CRON] Starting at ${now.toLocaleString()}`);
+    console.info(`[CRON] Starting at ${now.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`);
 
-    // Find reminders that are pending and whose scheduled time has passed
     const reminders = await Reminder.find({
         status: "pending",
-        scheduledTime: { $lte: new Date(now.getTime() + 3 * 60 * 60 * 1000) }, // + 3 hours
+        scheduledTime: { $lte: now },
     });
 
     if (reminders.length === 0) {
@@ -22,7 +20,7 @@ export async function triggerReminders() {
     console.info(`[CRON] Processing ${reminders.length} reminders`);
 
     let failedReminders = 0;
-    for await (const reminder of reminders) {
+    for (const reminder of reminders) {
         try {
             const success = await sendMessage({
                 phone: reminder.userPhoneNumber,

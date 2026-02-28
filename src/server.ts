@@ -1,3 +1,5 @@
+process.env.TZ = "America/Sao_Paulo";
+
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { swaggerUI } from "@hono/swagger-ui";

@@ -26,7 +26,8 @@ export async function listReminders({ userData }: { userData: UserData }) {
 
     const remindersList = reminders
         .map((reminder, index) => {
-            const dateStr = new Date(reminder.scheduledTime).toLocaleString("pt-BR", {
+            const dateStr = reminder.scheduledTime.toLocaleString("pt-BR", {
+                timeZone: "America/Sao_Paulo",
                 day: "2-digit",
                 month: "2-digit",
                 year: "numeric",

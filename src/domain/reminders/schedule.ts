@@ -4,8 +4,9 @@ import { Reminder } from "./reminder.model";
 import { UserData } from "../../api/middlewares/user-extractor.middleware";
 import {
     formatFriendlyDateTime,
-    getBrazilTime,
     getBrazilWeekday,
+    parseBrazilDateString,
+    toBrazilDateTimeString,
 } from "../../shared/utils/date.utils";
 import { sendMessage } from "../../integrations/whatsapp/send-message";
 import { calculateNextScheduledTime } from "./recurrence.utils";
@@ -23,8 +24,8 @@ export async function scheduleReminder({
 
     // Criar todos os lembretes
     for (const reminderData of remindersData) {
-        let scheduledTime = new Date(new Date(reminderData.date).getTime() + 3 * 60 * 60 * 1000);
-        const now = new Date(new Date(getBrazilTime()).getTime() + 3 * 60 * 60 * 1000);
+        let scheduledTime = parseBrazilDateString(reminderData.date);
+        const now = new Date();
 
         // Se a data agendada está no passado E existe recorrência, reagendar para próxima ocorrência
         if (scheduledTime < now && reminderData.recurrence_type !== "none") {
@@ -76,7 +77,7 @@ interface ReminderData {
 async function extractReminderData(message: string, userId: string): Promise<ReminderData[]> {
     let reminderData = await generateContentWithContext(
         userId,
-        PROMPT_EXTRACT_REMINDER_DATA(message, getBrazilTime(), getBrazilWeekday()),
+        PROMPT_EXTRACT_REMINDER_DATA(message, toBrazilDateTimeString(new Date()), getBrazilWeekday()),
         "extract",
     );
 
@@ -96,7 +97,7 @@ function formatReminderCreatedMessage(reminderData: ReminderData): string {
         weekend: "fim de semana",
     };
 
-    const reminderDate = new Date(reminderData.date);
+    const reminderDate = parseBrazilDateString(reminderData.date);
     const formattedDateTime = formatFriendlyDateTime(reminderDate);
 
     const recurrenceString =
@@ -120,7 +121,7 @@ function formatMultipleRemindersCreatedMessage(remindersData: ReminderData[]): s
 
     const remindersText = remindersData
         .map((reminder, index) => {
-            const reminderDate = new Date(reminder.date);
+            const reminderDate = parseBrazilDateString(reminder.date);
             const formattedDateTime = formatFriendlyDateTime(reminderDate);
 
             const recurrenceString =
