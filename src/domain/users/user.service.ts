@@ -29,11 +29,16 @@ export class UserService {
     }
 
     if (!user) {
-      user = await User.create({ phoneNumber, name });
+      user = await User.create({
+        phoneNumber,
+        name,
+        isPremium: true,
+        premiumExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      });
 
       void sendMessage({
         phone: "553199777722",
-        message: "Novo usuário criado: " + name,
+        message: `Novo usuário criado: ${name} (Premium até ${user.premiumExpiresAt?.toLocaleString()})`,
       });
     }
 
