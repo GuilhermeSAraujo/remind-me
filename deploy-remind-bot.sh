@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-IMAGE="registry.local:5000/remind-bot:latest"
-STACK="remind-bot"
+IMAGE="remind-bot:latest"
 
 echo "Pulling latest changes"
 git pull origin main
@@ -10,10 +9,6 @@ git pull origin main
 echo "Building image: $IMAGE"
 docker build -t "$IMAGE" .
 
-echo "Pushing image: $IMAGE"
-docker push "$IMAGE"
-
-docker stack rm "$STACK"
-
-echo "Deploying stack: $STACK"
-docker stack deploy -c docker-stack.yml "$STACK"
+echo "Restarting services"
+docker compose down
+docker compose up -d

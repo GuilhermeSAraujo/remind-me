@@ -1,0 +1,16 @@
+services:
+  remind-bot-wppconnect:
+    image: remind-bot-wppconnect:latest
+    networks:
+      - remind-bot-network
+
+  remind-bot:
+    image: remind-bot:latest
+    networks:
+      - remind-bot-network
+    env_file:
+      - .env
+
+networks:
+  remind-bot-network:
+    driver: bridge
