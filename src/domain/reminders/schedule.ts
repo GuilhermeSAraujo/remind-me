@@ -9,6 +9,7 @@ import {
     toBrazilDateTimeString,
 } from "../../shared/utils/date.utils";
 import { sendMessage } from "../../integrations/whatsapp/send-message";
+import { startTyping } from "../../integrations/whatsapp/start-typing";
 import { calculateNextScheduledTime } from "./recurrence.utils";
 
 export async function scheduleReminder({
@@ -75,6 +76,7 @@ interface ReminderData {
 }
 
 async function extractReminderData(message: string, userId: string): Promise<ReminderData[]> {
+    await startTyping({ phone: userId });
     let reminderData = await generateContentWithContext(
         userId,
         PROMPT_EXTRACT_REMINDER_DATA(message, toBrazilDateTimeString(new Date()), getBrazilWeekday()),

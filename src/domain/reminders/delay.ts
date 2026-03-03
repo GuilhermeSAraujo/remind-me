@@ -2,6 +2,7 @@ import { generateContentWithContext } from "../../integrations/ai/gemini-client"
 import { PROMPT_IDENTIFY_DELAY } from "../../integrations/ai/gemini-constants";
 import { reactMessage } from "../../integrations/whatsapp/react-message";
 import { sendMessage } from "../../integrations/whatsapp/send-message";
+import { startTyping } from "../../integrations/whatsapp/start-typing";
 import { UserData } from "../../integrations/whatsapp/types";
 import { formatFriendlyDateTime, parseBrazilDateString, toBrazilDateTimeString } from "../../shared/utils/date.utils";
 import { findReminderByMessageIdOrTextOrLastMessage } from "./find-reminder.helper";
@@ -15,6 +16,7 @@ async function extractDelayData(
     currentScheduledTime: string,
     userId: string,
 ): Promise<DelayData> {
+    await startTyping({ phone: userId });
     let delayData = await generateContentWithContext(
         userId,
         PROMPT_IDENTIFY_DELAY(userMessage, currentScheduledTime),

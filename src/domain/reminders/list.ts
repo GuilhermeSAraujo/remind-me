@@ -1,18 +1,20 @@
 import { UserData } from "../../api/middlewares/user-extractor.middleware";
 import { sendMessage } from "../../integrations/whatsapp/send-message";
+import { sendMessages } from "../../integrations/whatsapp/send-messages";
 import { getRemindersInListOrder } from "./reminders-list-order.helper";
+
+const LIST_EMPTY_MESSAGES: string[] = [
+    "Você não tem lembretes pendentes. 📭",
+    'Para criar um: "Me lembre de comprar pão às 14h" ou "Lembrete para ir ao médico amanhã às 10h".',
+];
 
 export async function listReminders({ userData }: { userData: UserData }) {
     const reminders = await getRemindersInListOrder(userData.phoneNumber);
 
     if (reminders.length === 0) {
-        await sendMessage({
+        await sendMessages({
             phone: userData.phoneNumber,
-            message: `Você não tem lembretes pendentes. 📭
-            
-Para criar um novo lembrete, envie:
-- "Me lembre de comprar pão às 14h";
-- "Criar lembrete para ir ao médico às 10h".`,
+            messages: LIST_EMPTY_MESSAGES,
         });
         return;
     }

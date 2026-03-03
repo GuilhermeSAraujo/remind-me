@@ -1,8 +1,8 @@
 import { ChangeStreamInsertDocument } from "mongodb";
 import { PremiumPayment, IPremiumPayment } from "../domain/payments/premium-payment.model";
 import { User } from "../domain/users/user.model";
-import { sendMessage } from "../integrations/whatsapp/send-message";
-import { PREMIUM_WELCOME_MESSAGE } from "../integrations/whatsapp/constants";
+import { sendMessages } from "../integrations/whatsapp/send-messages";
+import { PREMIUM_WELCOME_MESSAGES } from "../integrations/whatsapp/constants";
 import { env } from "../config/env";
 
 const startPremiumPaymentWatcher = async () => {
@@ -50,10 +50,10 @@ const startPremiumPaymentWatcher = async () => {
                     return;
                 }
 
-                // Send message via WhatsApp
-                const messageSent = await sendMessage({
+                // Send welcome messages via WhatsApp (chunked)
+                const messageSent = await sendMessages({
                     phone: userPhoneNumber,
-                    message: PREMIUM_WELCOME_MESSAGE,
+                    messages: PREMIUM_WELCOME_MESSAGES,
                 });
 
                 if (messageSent) {

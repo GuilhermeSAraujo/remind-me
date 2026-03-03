@@ -1,30 +1,10 @@
-export const HELP_MESSAGE = `Olá! Sou o bot de lembretes. 📝
-
-*Como criar lembretes:*
-Envie uma mensagem natural, como:
-
-_Lembretes pontuais:_
-• "Me lembre de comprar pão hoje às 14h"
-• "Lembrete para reunião amanhã 15:30"
-
-_Lembretes recorrentes:_
-• "Lembre-me de tomar creatina todo dia às 9h"
-• "Me lembre de abastecer o carro toda semana às 19:30"
-• "Me lembre de academia nos dias úteis às 7h"
-• "Me lembre de descansar aos finais de semana às 10h"
-
-*Como gerenciar lembretes:*
-
-_Ver seus lembretes:_
-• Envie: "Listar lembretes" ou "Ver meus lembretes"
-
-_Deletar um lembrete:_
-• Responda a mensagem do lembrete com "Apagar" ou "Deletar"
-
-_Adiar um lembrete:_
-• Responda a mensagem do lembrete com "Adiar" e o tempo desejado
-• Exemplo: "Adiar 30 minutos" ou "Adiar para amanhã"
-`;
+export const HELP_MESSAGES: string[] = [
+    "Olá! Aqui você consegue criar e gerenciar lembretes por mensagem. 📝",
+    'Para criar: escreva naturalmente, tipo "Me lembre de comprar pão hoje às 14h" ou "Lembrete para reunião amanhã 15:30".',
+    'Recorrentes também: "todo dia às 9h", "toda semana às 19h", "nos dias úteis às 7h".',
+    'Ver lembretes: "Listar lembretes" ou "Ver meus lembretes".',
+    'Para apagar ou adiar: responda a mensagem do lembrete com "Apagar" ou "Adiar 30 minutos" (ou o tempo que quiser).',
+];
 
 const PREMIUM_LINK = (phoneNumber: string) =>
     `https://create-payment-689285001769.southamerica-east1.run.app/payment-link/${phoneNumber}`;
@@ -69,13 +49,8 @@ export const FREE_USER_REMINDER_LIMIT_MESSAGE = (phoneNumber: string) =>
     `Assine o plano Premium por apenas R$ 4,90 e tenha acesso ilimitado!\n\n` +
     `🔗 Assine agora:\n${PREMIUM_LINK(phoneNumber)}`;
 
-export const PREMIUM_WELCOME_MESSAGE = `🎉 *Bem-vindo ao Premium!*
-
-Olá! Seu pagamento foi confirmado e agora você tem acesso premium!
-
-Aproveite os benefícios:
-✨ Lembretes ilimitados
-✨ Sem limites de uso da IA
-✨ Prioridade no suporte
-
-Obrigado por nos apoiar! 🚀`;
+export const PREMIUM_WELCOME_MESSAGES: string[] = [
+    "🎉 Pagamento confirmado! Você agora é Premium.",
+    "✨ Lembretes ilimitados e uso da IA sem limites.",
+    "Obrigado por apoiar! Qualquer dúvida, é só falar. 🚀",
+];

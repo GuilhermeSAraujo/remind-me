@@ -7,10 +7,11 @@ import { User } from "../../domain/users/user.model";
 import { checkRateLimit } from "../../services/rate-limiter.service";
 import { clearChatSession, generateContentWithContext } from "../ai/gemini-client";
 import { PROMPT_CLASSIFY_MESSAGE_INTENT } from "../ai/gemini-constants";
-import { FREE_USER_REMINDER_LIMIT_MESSAGE, HELP_MESSAGE, RATE_LIMIT_EXCEEDED_MESSAGE } from "./constants";
+import { FREE_USER_REMINDER_LIMIT_MESSAGE, HELP_MESSAGES, RATE_LIMIT_EXCEEDED_MESSAGE } from "./constants";
 import { detectMessageIntent, type MessageIntent } from "./intent-detector";
 import { reactMessage } from "./react-message";
 import { sendMessage } from "./send-message";
+import { sendMessages } from "./send-messages";
 import type { MessagePayload, UserData } from "./types";
 
 export async function processMessage(body: MessagePayload, userData: UserData) {
@@ -128,9 +129,9 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
 
             case "help":
             default:
-                await sendMessage({
+                await sendMessages({
                     phone: userData.phoneNumber,
-                    message: HELP_MESSAGE,
+                    messages: HELP_MESSAGES,
                 });
                 await reactMessage(userData.messageId, "ℹ️");
                 break;

@@ -7,6 +7,7 @@ import { extractUserData, type UserData } from "./api/middlewares/user-extractor
 import type { MessagePayload } from "./integrations/whatsapp/types";
 import { processMessage } from "./integrations/whatsapp/message-processor";
 import { reactMessage } from "./integrations/whatsapp/react-message";
+import { startTyping } from "./integrations/whatsapp/start-typing";
 import { startSession } from "./integrations/whatsapp/client";
 import "./config/database";
 import "./jobs/scheduler";
@@ -31,7 +32,7 @@ app.get("/api-doc", (c) => {
         info: {
             version: "0.0.1-beta",
             title: "Remind Me API",
-            description: "API do bot de agendamento de tarefas e lembretes via WhatsApp",
+            description: "API de agendamento de tarefas e lembretes via WhatsApp",
         },
         servers: [
             {
@@ -256,6 +257,7 @@ app.post("", extractUserData, async (c) => {
         });
     }
 
+    await startTyping({ phone: userData.phoneNumber });
     await processMessage(body, userData);
 
     return c.json({
