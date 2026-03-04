@@ -1,11 +1,17 @@
+version: "3"
+
 services:
   remind-bot-wppconnect:
     image: remind-bot-wppconnect:latest
+    restart: unless-stopped
+    volumes:
+      - wpp_userdata:/usr/src/wpp-server/userDataDir
     networks:
       - remind-bot-network
 
   remind-bot:
     image: remind-bot:latest
+    restart: unless-stopped
     networks:
       - remind-bot-network
     env_file:
@@ -14,3 +20,6 @@ services:
 networks:
   remind-bot-network:
     driver: bridge
+
+volumes:
+  wpp_userdata: {}
