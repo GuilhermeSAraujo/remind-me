@@ -11,4 +11,7 @@ docker build -t "$IMAGE" .
 
 echo "Restarting services"
 docker compose down
+find ./userDataDir -name "SingletonLock" -delete 2>/dev/null || true
+find ./userDataDir -name "SingletonCookie" -delete 2>/dev/null || true  
+find ./userDataDir -name "SingletonSocket" -delete 2>/dev/null || true
 docker compose up -d
