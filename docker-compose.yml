@@ -4,6 +4,11 @@ services:
   remind-bot-wppconnect:
     image: remind-bot-wppconnect:latest
     restart: unless-stopped
+    entrypoint: >
+      sh -c "find /usr/src/wpp-server/userDataDir -name 'SingletonLock' -delete 2>/dev/null;
+             find /usr/src/wpp-server/userDataDir -name 'SingletonCookie' -delete 2>/dev/null;
+             find /usr/src/wpp-server/userDataDir -name 'SingletonSocket' -delete 2>/dev/null;
+             exec node /usr/src/wpp-server/dist/server.js"
     volumes:
       - wpp_userdata:/usr/src/wpp-server/userDataDir
     networks:
