@@ -4,6 +4,7 @@ import { CONFIG, getSessionToken } from "./client";
 export interface StartTypingOptions {
     phone: string;
     isGroup?: boolean;
+    value?: boolean;
 }
 
 /**
@@ -12,7 +13,7 @@ export interface StartTypingOptions {
  * No stop call is needed: WhatsApp clears the indicator automatically when a message is sent.
  */
 export async function startTyping(options: StartTypingOptions): Promise<void> {
-    const { isGroup = false } = options;
+    const { isGroup = false, value = true } = options;
     const phone = env.LOCAL_TEST_MODE ? env.LOCAL_TEST_GROUP_ID! : options.phone;
 
     try {
@@ -26,7 +27,7 @@ export async function startTyping(options: StartTypingOptions): Promise<void> {
             body: JSON.stringify({
                 phone,
                 isGroup: !!env.LOCAL_TEST_MODE || isGroup,
-                value: true,
+                value,
             }),
         });
     } catch (error) {

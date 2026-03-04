@@ -258,7 +258,10 @@ app.post("", extractUserData, async (c) => {
     }
 
     await startTyping({ phone: userData.phoneNumber });
+    
     await processMessage(body, userData);
+
+    await startTyping({ phone: userData.phoneNumber, value: false });
 
     return c.json({
         success: true,
