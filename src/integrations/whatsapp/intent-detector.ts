@@ -4,7 +4,8 @@ export type MessageIntent =
     | 'delete_reminder'
     | 'help'
     | 'delay_reminder'
-    | 'thank';
+    | 'thank'
+    | 'buy_premium';
 
 interface IntentPattern {
     intent: MessageIntent;
@@ -39,9 +40,14 @@ export const INTENT_PATTERNS: IntentPattern[] = [
         priority: 5
     },
     {
+        intent: 'buy_premium',
+        pattern: /quero assinar|assinar|assinatura|premium|plano pago|plano premium|planos/,
+        priority: 6
+    },
+    {
         intent: 'help',
         pattern: /ajuda|help|sobre|como|boa tarde|bom dia|boa noite|tudo bem|como vai|oi|ola|olá|alo/,
-        priority: 6
+        priority: 7
     }
 ];
 

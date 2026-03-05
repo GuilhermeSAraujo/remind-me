@@ -7,7 +7,7 @@ import { User } from "../../domain/users/user.model";
 import { checkRateLimit } from "../../services/rate-limiter.service";
 import { clearChatSession, generateContentWithContext } from "../ai/gemini-client";
 import { PROMPT_CLASSIFY_MESSAGE_INTENT } from "../ai/gemini-constants";
-import { FREE_USER_REMINDER_LIMIT_MESSAGE, HELP_MESSAGES, RATE_LIMIT_EXCEEDED_MESSAGE } from "./constants";
+import { BUY_PREMIUM_MESSAGE, FREE_USER_REMINDER_LIMIT_MESSAGE, HELP_MESSAGES, RATE_LIMIT_EXCEEDED_MESSAGE } from "./constants";
 import { detectMessageIntent, type MessageIntent } from "./intent-detector";
 import { reactMessage } from "./react-message";
 import { sendMessage } from "./send-message";
@@ -117,6 +117,14 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
             case "delay_reminder":
                 await delayReminder({ userMessage: body.body, userData, quotedMsgId: body.quotedMsgId });
                 await reactMessage(userData.messageId, "✅");
+                break;
+
+            case "buy_premium":
+                await sendMessage({
+                    phone: userData.phoneNumber,
+                    message: BUY_PREMIUM_MESSAGE(userData.phoneNumber),
+                });
+                await reactMessage(userData.messageId, "⭐");
                 break;
 
             case "thank":

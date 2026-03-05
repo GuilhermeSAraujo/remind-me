@@ -49,6 +49,15 @@ export const FREE_USER_REMINDER_LIMIT_MESSAGE = (phoneNumber: string) =>
     `Assine o plano Premium por apenas R$ 4,90 e tenha acesso ilimitado!\n\n` +
     `🔗 Assine agora:\n${PREMIUM_LINK(phoneNumber)}`;
 
+export const BUY_PREMIUM_MESSAGE = (phoneNumber: string) =>
+    `✨ *Remind Me Premium*\n\n` +
+    `Com o Premium você tem:\n` +
+    `• Lembretes ilimitados\n` +
+    `• Uso da IA sem restrições\n` +
+    `• Suporte prioritário\n\n` +
+    `💰 Apenas *R$ 4,90/mês*\n\n` +
+    `🔗 Assine agora:\n${PREMIUM_LINK(phoneNumber)}`;
+
 export const PREMIUM_WELCOME_MESSAGES: string[] = [
     "🎉 Pagamento confirmado! Você agora é Premium.",
     "✨ Lembretes ilimitados e uso da IA sem limites.",
