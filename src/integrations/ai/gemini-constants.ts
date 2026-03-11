@@ -85,7 +85,9 @@ Example: Me lembre de comprar pão 14h
         title: "Comprar pão",
         date: "2026-01-17 14:00:00",
         recurrence_type: "none",
-        recurrence_interval: 0
+        recurrence_interval: 0,
+        max_occurrences: null,
+        end_date: null
     }
 ]
 
@@ -95,7 +97,9 @@ Example: Me lembre de comprar pão todos os dias as 14h
         title: "Comprar pão",
         date: "2026-01-17 14:00:00",
         recurrence_type: "daily",
-        recurrence_interval: 1
+        recurrence_interval: 1,
+        max_occurrences: null,
+        end_date: null
     }
 ]
 
@@ -105,13 +109,17 @@ Example: Me lembre de lavar louça toda terça-feira 14h e de ir ao mercado toda
         title: "Lavar louça",
         date: "2026-01-21 14:00:00",
         recurrence_type: "weekly",
-        recurrence_interval: 1
+        recurrence_interval: 1,
+        max_occurrences: null,
+        end_date: null
     },
     {
         title: "Ir ao mercado",
         date: "2026-01-22 19:00:00",
         recurrence_type: "weekly",
-        recurrence_interval: 1
+        recurrence_interval: 1,
+        max_occurrences: null,
+        end_date: null
     }
 ]
 
@@ -121,7 +129,9 @@ Example: Me lembre de fazer exercício nos dias de semana às 7h
         title: "Fazer exercício",
         date: "2026-01-26 07:00:00",
         recurrence_type: "weekday",
-        recurrence_interval: 1
+        recurrence_interval: 1,
+        max_occurrences: null,
+        end_date: null
     }
 ]
 
@@ -131,7 +141,9 @@ Example: Me lembre de descansar aos finais de semana às 10h
         title: "Descansar",
         date: "2026-01-25 10:00:00",
         recurrence_type: "weekend",
-        recurrence_interval: 1
+        recurrence_interval: 1,
+        max_occurrences: null,
+        end_date: null
     }
 ]
 
@@ -141,7 +153,9 @@ Example: Me lembre durante os dias úteis às 13h de trabalhar
         title: "Trabalhar",
         date: "2026-01-26 13:00:00",
         recurrence_type: "weekday",
-        recurrence_interval: 1
+        recurrence_interval: 1,
+        max_occurrences: null,
+        end_date: null
     }
 ]
 
