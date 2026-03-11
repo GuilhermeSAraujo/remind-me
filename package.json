@@ -12,7 +12,8 @@
     "build": "npm run type-check && tsup src/server.ts --format esm --clean && npm run copy-assets",
     "copy-assets": "mkdir -p dist/assets && cp -r src/assets/. dist/assets/",
     "start": "node dist/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -27,8 +28,10 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/qrcode-terminal": "^0.12.2",
+    "@vitest/coverage-v8": "^4.0.18",
     "tsup": "^8.0.0",
     "tsx": "^4.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^4.0.18"
   }
 }
