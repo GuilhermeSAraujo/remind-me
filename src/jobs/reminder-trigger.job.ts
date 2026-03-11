@@ -1,7 +1,7 @@
 import { Reminder } from "../domain/reminders/reminder.model";
 import { sendMessage } from "../integrations/whatsapp/send-message";
 import { getRandomPrefix } from "../shared/utils/reminder-prefix.utils";
-import { calculateNextScheduledTime } from "../domain/reminders/recurrence.utils";
+import { calculateNextScheduledTime, shouldStopRecurrence } from "../domain/reminders/recurrence.utils";
 
 export async function triggerReminders() {
     const now = new Date();
@@ -36,7 +36,8 @@ export async function triggerReminders() {
                 continue;
             }
 
-            // Handle recurring reminders
+            const newSentCount = reminder.sentCount + 1;
+
             if (reminder.recurrence_type !== "none" && reminder.recurrence_interval > 0) {
                 const nextScheduledTime = calculateNextScheduledTime(
                     reminder.scheduledTime,
@@ -44,10 +45,20 @@ export async function triggerReminders() {
                     reminder.recurrence_interval,
                 );
 
-                await Reminder.updateOne({ _id: reminder._id }, { scheduledTime: nextScheduledTime });
+                const stop = shouldStopRecurrence({
+                    sentCount: newSentCount,
+                    maxOccurrences: reminder.maxOccurrences,
+                    endDate: reminder.endDate,
+                    nextScheduledTime,
+                });
+
+                if (stop) {
+                    await Reminder.updateOne({ _id: reminder._id }, { status: "sent", sentCount: newSentCount });
+                } else {
+                    await Reminder.updateOne({ _id: reminder._id }, { scheduledTime: nextScheduledTime, sentCount: newSentCount });
+                }
             } else {
-                // Non-recurring reminder, mark as sent
-                await Reminder.updateOne({ _id: reminder._id }, { status: "sent" });
+                await Reminder.updateOne({ _id: reminder._id }, { status: "sent", sentCount: newSentCount });
             }
         } catch (error) {
             console.error(`[CRON] Failed to send reminder:`, {
