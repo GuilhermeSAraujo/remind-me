@@ -33,15 +33,6 @@ app.post("", extractUserData, async (c) => {
 
     await reactMessage(userData.messageId, "⏳");
 
-    if (body.body?.startsWith("/")) {
-        console.info("[SERVER] Command received:", body.body);
-        return c.json({
-            success: true,
-            message: "Command received",
-            data: body,
-        });
-    }
-
     await startTyping({ phone: userData.phoneNumber });
     
     await processMessage(body, userData);
