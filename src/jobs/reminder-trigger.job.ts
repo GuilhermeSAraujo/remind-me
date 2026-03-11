@@ -36,7 +36,7 @@ export async function triggerReminders() {
                 continue;
             }
 
-            const newSentCount = reminder.sentCount + 1;
+            const newSentCount = (reminder.sentCount ?? 0) + 1;
 
             if (reminder.recurrence_type !== "none" && reminder.recurrence_interval > 0) {
                 const nextScheduledTime = calculateNextScheduledTime(
