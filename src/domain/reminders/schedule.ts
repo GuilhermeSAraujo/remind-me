@@ -45,6 +45,9 @@ export async function scheduleReminder({
             recurrence_type: reminderData.recurrence_type,
             recurrence_interval: reminderData.recurrence_interval,
             status: "pending",
+            maxOccurrences: reminderData.max_occurrences ?? null,
+            endDate: reminderData.end_date ? parseBrazilDateString(reminderData.end_date) : null,
+            sentCount: 0,
         });
     }
 
@@ -73,6 +76,8 @@ interface ReminderData {
     | "weekend"
     | "none";
     recurrence_interval: number;
+    max_occurrences?: number | null;
+    end_date?: string | null;
 }
 
 async function extractReminderData(message: string, userId: string): Promise<ReminderData[]> {

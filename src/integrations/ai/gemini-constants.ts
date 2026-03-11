@@ -51,6 +51,8 @@ Respond ONLY with a valid JSON ARRAY in PLAINTEXT format with the following stru
         date string
         recurrence_type hourly | daily | weekly | monthly | yearly | weekday | weekend | none
         recurrence_interval number
+        max_occurrences number | null   (null if no limit on number of times)
+        end_date string | null          (format: "YYYY-MM-DD HH:mm:ss", null if no end date)
     }
 ]
 
@@ -67,6 +69,15 @@ For recurrence_type "weekend" (Saturday/Sunday):
 For all other recurrence types (hourly, daily, weekly, monthly, yearly):
 - Schedule for the first occurrence that makes sense based on the message
 - If the time has already passed today, schedule for the next appropriate occurrence
+
+For max_occurrences:
+- Set when the user specifies a finite number of repetitions (e.g. "5 vezes", "3x", "10 vezes")
+- Otherwise set to null
+
+For end_date:
+- Set when the user specifies a duration or end date (e.g. "durante 5 dias", "até sexta-feira", "por 2 semanas")
+- Calculate end_date by adding the duration to the first occurrence date
+- Otherwise set to null
 
 Example: Me lembre de comprar pão 14h
 [
@@ -131,6 +142,30 @@ Example: Me lembre durante os dias úteis às 13h de trabalhar
         date: "2026-01-26 13:00:00",
         recurrence_type: "weekday",
         recurrence_interval: 1
+    }
+]
+
+Example: Me lembre de tomar remédio a cada 8h durante 5 dias
+[
+    {
+        title: "Tomar remédio",
+        date: "2026-03-11 08:00:00",
+        recurrence_type: "hourly",
+        recurrence_interval: 8,
+        max_occurrences: null,
+        end_date: "2026-03-16 08:00:00"
+    }
+]
+
+Example: Me lembre de olhar o celular 5x a cada 15 minutos
+[
+    {
+        title: "Olhar o celular",
+        date: "2026-03-11 08:00:00",
+        recurrence_type: "hourly",
+        recurrence_interval: 0.25,
+        max_occurrences: 5,
+        end_date: null
     }
 ]
 `;
