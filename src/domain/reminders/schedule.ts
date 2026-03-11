@@ -112,7 +112,27 @@ function formatReminderCreatedMessage(reminderData: ReminderData): string {
             ? `, com recorrência a cada ${reminderData.recurrence_interval} ${recurrenceTypePtBr[reminderData.recurrence_type]}`
             : "";
 
-    return `Lembrete criado para ${formattedDateTime}${recurrenceString}`;
+    const extraParts: string[] = [];
+
+    if (reminderData.end_date) {
+        const endDate = parseBrazilDateString(reminderData.end_date);
+        const endDateStr = endDate.toLocaleDateString("pt-BR", {
+            timeZone: "America/Sao_Paulo",
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+        });
+        extraParts.push(`até ${endDateStr}`);
+    }
+
+    if (reminderData.max_occurrences != null) {
+        const plural = reminderData.max_occurrences === 1 ? "vez" : "vezes";
+        extraParts.push(`máx. ${reminderData.max_occurrences} ${plural}`);
+    }
+
+    const extrasString = extraParts.length > 0 ? `, ${extraParts.join(", ")}` : "";
+
+    return `Lembrete criado para ${formattedDateTime}${recurrenceString}${extrasString}`;
 }
 
 function formatMultipleRemindersCreatedMessage(remindersData: ReminderData[]): string {
@@ -136,7 +156,27 @@ function formatMultipleRemindersCreatedMessage(remindersData: ReminderData[]): s
                     ? `, com recorrência a cada ${reminder.recurrence_interval} ${reminder.recurrence_interval === 1 ? recurrenceTypePtBr[reminder.recurrence_type] : recurrenceTypePtBr[reminder.recurrence_type] + "s"}`
                     : "";
 
-            return `${index + 1}. *${reminder.title}* - ${formattedDateTime}${recurrenceString}`;
+            const extraParts: string[] = [];
+
+            if (reminder.end_date) {
+                const endDate = parseBrazilDateString(reminder.end_date);
+                const endDateStr = endDate.toLocaleDateString("pt-BR", {
+                    timeZone: "America/Sao_Paulo",
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                });
+                extraParts.push(`até ${endDateStr}`);
+            }
+
+            if (reminder.max_occurrences != null) {
+                const plural = reminder.max_occurrences === 1 ? "vez" : "vezes";
+                extraParts.push(`máx. ${reminder.max_occurrences} ${plural}`);
+            }
+
+            const extrasString = extraParts.length > 0 ? `, ${extraParts.join(", ")}` : "";
+
+            return `${index + 1}. *${reminder.title}* - ${formattedDateTime}${recurrenceString}${extrasString}`;
         })
         .join("\n");
 

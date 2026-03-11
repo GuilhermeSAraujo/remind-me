@@ -1,0 +1,107 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+const { mockGenerateContent, mockSendMessage, mockReminderCreate, mockStartTyping } =
+    vi.hoisted(() => ({
+        mockGenerateContent: vi.fn(),
+        mockSendMessage: vi.fn(),
+        mockReminderCreate: vi.fn(),
+        mockStartTyping: vi.fn(),
+    }));
+
+vi.mock("../../integrations/ai/gemini-client", () => ({
+    generateContentWithContext: mockGenerateContent,
+}));
+
+vi.mock("../../integrations/whatsapp/send-message", () => ({
+    sendMessage: mockSendMessage,
+}));
+
+vi.mock("../../integrations/whatsapp/start-typing", () => ({
+    startTyping: mockStartTyping,
+}));
+
+vi.mock("./reminder.model", () => ({
+    Reminder: {
+        create: mockReminderCreate,
+    },
+}));
+
+import { scheduleReminder } from "./schedule";
+
+describe("scheduleReminder – confirmation messages with end date and max occurrences", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockGenerateContent.mockResolvedValue("[]");
+    });
+
+    it("includes end date and max occurrences in single reminder confirmation", async () => {
+        mockGenerateContent.mockResolvedValue(
+            JSON.stringify([
+                {
+                    title: "tomar remédio",
+                    date: "2026-03-10 08:00",
+                    recurrence_type: "none",
+                    recurrence_interval: 0,
+                    max_occurrences: 5,
+                    end_date: "2026-03-31 10:00",
+                },
+            ]),
+        );
+
+        await scheduleReminder({
+            // Minimal fields for this test – type cast to avoid coupling to full UserData shape
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            userData: { phoneNumber: "5511999999999" } as any,
+            message: "Me lembre de tomar remédio",
+            messageId: "wamid.SAMPLE",
+        });
+
+        expect(mockSendMessage).toHaveBeenCalledTimes(1);
+        const sent = mockSendMessage.mock.calls[0]![0]!;
+
+        expect(sent.message).toContain("até 31/03/2026");
+        expect(sent.message).toContain("máx. 5 vez");
+    });
+
+    it("includes end date and max occurrences per item in multiple reminders confirmation", async () => {
+        mockGenerateContent.mockResolvedValue(
+            JSON.stringify([
+                {
+                    title: "remédio manhã",
+                    date: "2026-03-10 08:00",
+                    recurrence_type: "daily",
+                    recurrence_interval: 1,
+                    end_date: "2026-03-31 08:00",
+                    max_occurrences: null,
+                },
+                {
+                    title: "remédio noite",
+                    date: "2026-03-10 20:00",
+                    recurrence_type: "none",
+                    recurrence_interval: 0,
+                    end_date: null,
+                    max_occurrences: 3,
+                },
+            ]),
+        );
+
+        await scheduleReminder({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            userData: { phoneNumber: "5511999999999" } as any,
+            message: "Lembretes de remédio",
+            messageId: "wamid.SAMPLE2",
+        });
+
+        expect(mockSendMessage).toHaveBeenCalledTimes(1);
+        const sent = mockSendMessage.mock.calls[0]![0]!;
+
+        const text: string = sent.message;
+
+        // First item should mention end date
+        expect(text).toMatch(/1\.\s\*remédio manhã\*[\s\S]*até 31\/03\/2026/);
+
+        // Second item should mention max occurrences
+        expect(text).toMatch(/2\.\s\*remédio noite\*[\s\S]*máx\. 3 vez/);
+    });
+});
+
