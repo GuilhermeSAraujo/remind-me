@@ -8,6 +8,9 @@ export interface IReminder extends Document {
     recurrence_type: "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "weekday" | "weekend" | "none";
     recurrence_interval: number;
     status: "pending" | "sent" | "cancelled";
+    maxOccurrences: number | null;
+    endDate: Date | null;
+    sentCount: number;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -45,6 +48,18 @@ const ReminderSchema = new Schema<IReminder>(
             type: String,
             enum: ["pending", "sent", "cancelled"],
             default: "pending",
+        },
+        maxOccurrences: {
+            type: Number,
+            default: null,
+        },
+        endDate: {
+            type: Date,
+            default: null,
+        },
+        sentCount: {
+            type: Number,
+            default: 0,
         },
     },
     {
