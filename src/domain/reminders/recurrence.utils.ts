@@ -46,3 +46,19 @@ export function calculateNextScheduledTime(
 
     return nextTime;
 }
+
+export function shouldStopRecurrence({
+    sentCount,
+    maxOccurrences,
+    endDate,
+    nextScheduledTime,
+}: {
+    sentCount: number;
+    maxOccurrences: number | null;
+    endDate: Date | null;
+    nextScheduledTime: Date;
+}): boolean {
+    if (maxOccurrences !== null && sentCount >= maxOccurrences) return true;
+    if (endDate !== null && nextScheduledTime > endDate) return true;
+    return false;
+}
