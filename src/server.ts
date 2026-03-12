@@ -39,10 +39,18 @@ app.post("", extractUserData, async (c) => {
             body.body.split(" ")?.[1] === "multi-prompt" ? "multi-prompt" : "single-prompt";
 
         setIdentificationType(identificationTypeFromMessage);
+
+        console.log(`[SERVER] setIdentificationType to ${identificationTypeFromMessage}`)
+
+        return c.json({
+            success: true,
+            message: "Message received",
+            data: body,
+        });
     }
 
     await startTyping({ phone: userData.phoneNumber });
-    
+
     await processMessage(body, userData);
 
     await startTyping({ phone: userData.phoneNumber, value: false });
