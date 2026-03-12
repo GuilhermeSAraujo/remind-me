@@ -59,3 +59,104 @@ describe("listReminders – compact entries with end date and max occurrences", 
     });
 });
 
+describe("listReminders – recurrence labels for special monthly types", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it("renders 'toda 2ª segunda-feira do mês' for monthly_nth_weekday (nth=2, weekday=1)", async () => {
+        mockGetRemindersInListOrder.mockResolvedValue([
+            {
+                _id: "id1",
+                userPhoneNumber: "5511999999999",
+                title: "Reunião mensal",
+                scheduledTime: new Date("2026-04-13T10:00:00-03:00"),
+                recurrence_type: "monthly_nth_weekday",
+                recurrence_interval: 1,
+                recurrence_weekday: 1,
+                recurrence_nth: 2,
+                status: "pending",
+                maxOccurrences: null,
+                endDate: null,
+                sentCount: 0,
+            },
+        ]);
+
+        await listReminders({ userData: { phoneNumber: "5511999999999" } as any });
+
+        const text: string = mockSendMessage.mock.calls[0]![0]!.message;
+        expect(text).toContain("· toda 2ª segunda-feira do mês");
+    });
+
+    it("renders 'toda última sexta-feira do mês' for monthly_nth_weekday (nth=-1, weekday=5)", async () => {
+        mockGetRemindersInListOrder.mockResolvedValue([
+            {
+                _id: "id2",
+                userPhoneNumber: "5511999999999",
+                title: "Fechamento",
+                scheduledTime: new Date("2026-04-24T10:00:00-03:00"),
+                recurrence_type: "monthly_nth_weekday",
+                recurrence_interval: 1,
+                recurrence_weekday: 5,
+                recurrence_nth: -1,
+                status: "pending",
+                maxOccurrences: null,
+                endDate: null,
+                sentCount: 0,
+            },
+        ]);
+
+        await listReminders({ userData: { phoneNumber: "5511999999999" } as any });
+
+        const text: string = mockSendMessage.mock.calls[0]![0]!.message;
+        expect(text).toContain("· toda última sexta-feira do mês");
+    });
+
+    it("renders 'todo último dia útil do mês' for monthly_last_business_day", async () => {
+        mockGetRemindersInListOrder.mockResolvedValue([
+            {
+                _id: "id3",
+                userPhoneNumber: "5511999999999",
+                title: "Pagar fornecedor",
+                scheduledTime: new Date("2026-03-31T17:00:00-03:00"),
+                recurrence_type: "monthly_last_business_day",
+                recurrence_interval: 1,
+                recurrence_weekday: null,
+                recurrence_nth: null,
+                status: "pending",
+                maxOccurrences: null,
+                endDate: null,
+                sentCount: 0,
+            },
+        ]);
+
+        await listReminders({ userData: { phoneNumber: "5511999999999" } as any });
+
+        const text: string = mockSendMessage.mock.calls[0]![0]!.message;
+        expect(text).toContain("· todo último dia útil do mês");
+    });
+
+    it("renders 'todo primeiro dia útil do mês' for monthly_first_business_day", async () => {
+        mockGetRemindersInListOrder.mockResolvedValue([
+            {
+                _id: "id4",
+                userPhoneNumber: "5511999999999",
+                title: "Emitir nota fiscal",
+                scheduledTime: new Date("2026-04-01T09:00:00-03:00"),
+                recurrence_type: "monthly_first_business_day",
+                recurrence_interval: 1,
+                recurrence_weekday: null,
+                recurrence_nth: null,
+                status: "pending",
+                maxOccurrences: null,
+                endDate: null,
+                sentCount: 0,
+            },
+        ]);
+
+        await listReminders({ userData: { phoneNumber: "5511999999999" } as any });
+
+        const text: string = mockSendMessage.mock.calls[0]![0]!.message;
+        expect(text).toContain("· todo primeiro dia útil do mês");
+    });
+});
