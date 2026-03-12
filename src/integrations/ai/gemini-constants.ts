@@ -49,8 +49,10 @@ Respond ONLY with a valid JSON ARRAY in PLAINTEXT format with the following stru
     {
         title string
         date string
-        recurrence_type hourly | daily | weekly | monthly | yearly | weekday | weekend | none
+        recurrence_type hourly | daily | weekly | monthly | yearly | weekday | weekend | monthly_nth_weekday | monthly_last_business_day | monthly_first_business_day | none
         recurrence_interval number
+        recurrence_weekday number | null   (0=domingo, 1=segunda, 2=terça, 3=quarta, 4=quinta, 5=sexta, 6=sábado — only for monthly_nth_weekday, null otherwise)
+        recurrence_nth number | null       (1–5 or -1 for "último/a" — only for monthly_nth_weekday, null otherwise)
         max_occurrences number | null   (null if no limit on number of times)
         end_date string | null          (format: "YYYY-MM-DD HH:mm:ss", null if no end date)
     }
@@ -69,6 +71,23 @@ For recurrence_type "weekend" (Saturday/Sunday):
 For all other recurrence types (hourly, daily, weekly, monthly, yearly):
 - Schedule for the first occurrence that makes sense based on the message
 - If the time has already passed today, schedule for the next appropriate occurrence
+
+For recurrence_type "monthly_nth_weekday":
+- Use when the user specifies a specific weekday + "de cada mês" / "todo mês"
+- Examples: "primeira terça-feira de cada mês", "última sexta do mês", "terceira quarta-feira"
+- Set recurrence_weekday to the weekday number (1=segunda, 2=terça, 3=quarta, 4=quinta, 5=sexta, 6=sábado, 0=domingo)
+- Set recurrence_nth to: 1 (primeira), 2 (segunda), 3 (terceira), 4 (quarta), 5 (quinta), -1 (última/último)
+- For "date": compute the next upcoming occurrence of that rule from the current date
+
+For recurrence_type "monthly_last_business_day":
+- Use when the user says "último dia útil do mês" or similar
+- Set recurrence_weekday to null, recurrence_nth to null
+- For "date": compute the last Monday–Friday of the current month (if it hasn't passed) or next month
+
+For recurrence_type "monthly_first_business_day":
+- Use when the user says "primeiro dia útil do mês" or similar
+- Set recurrence_weekday to null, recurrence_nth to null
+- For "date": compute the first Monday–Friday of the current month (if it hasn't passed) or next month
 
 For max_occurrences:
 - Set when the user specifies a finite number of repetitions (e.g. "5 vezes", "3x", "10 vezes")
@@ -178,7 +197,37 @@ Example: Me lembre de olhar o celular 5x a cada 15 minutos
         date: "2026-03-11 08:00:00",
         recurrence_type: "hourly",
         recurrence_interval: 0.25,
+        recurrence_weekday: null,
+        recurrence_nth: null,
         max_occurrences: 5,
+        end_date: null
+    }
+]
+
+Example: Me lembre todo último dia útil do mês às 10h
+[
+    {
+        title: "Lembrete mensal",
+        date: "2026-03-31 10:00:00",
+        recurrence_type: "monthly_last_business_day",
+        recurrence_interval: 1,
+        recurrence_weekday: null,
+        recurrence_nth: null,
+        max_occurrences: null,
+        end_date: null
+    }
+]
+
+Example: Me lembre toda primeira terça-feira de cada mês às 9h
+[
+    {
+        title: "Lembrete mensal",
+        date: "2026-04-07 09:00:00",
+        recurrence_type: "monthly_nth_weekday",
+        recurrence_interval: 1,
+        recurrence_weekday: 2,
+        recurrence_nth: 1,
+        max_occurrences: null,
         end_date: null
     }
 ]
@@ -214,6 +263,7 @@ RULES FOR date:
 - Schedule for the first occurrence that makes sense based on the message.
 - If the time has already passed today, schedule for the next appropriate occurrence.
 - If no time is specified, use a sensible default (e.g. 08:00:00).
+- For calendar-rule recurrences (último dia útil, primeira terça-feira etc.): compute the next upcoming concrete occurrence from the current date.
 
 Example: Me lembre de comprar pão às 14h
 [
@@ -263,8 +313,10 @@ The original user message was: ${originalMessage}
 Now extract ONLY the recurrence information for this reminder.
 Respond ONLY with a valid JSON OBJECT in PLAINTEXT format:
 {
-    "recurrence_type": "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "weekday" | "weekend" | "none",
+    "recurrence_type": "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "weekday" | "weekend" | "monthly_nth_weekday" | "monthly_last_business_day" | "monthly_first_business_day" | "none",
     "recurrence_interval": number,
+    "recurrence_weekday": number | null,
+    "recurrence_nth": number | null,
     "max_occurrences": number | null,
     "end_date": string | null   (format: "YYYY-MM-DD HH:mm:ss")
 }
@@ -276,17 +328,34 @@ CRITICAL RULES:
 - max_occurrences: set only if the user specifies a finite count (e.g. "5 vezes", "3x"). Otherwise null.
 - end_date: set only if the user specifies a duration or end date (e.g. "durante 5 dias", "até sexta"). Otherwise null.
 
+For recurrence_type "monthly_nth_weekday":
+- Use when the user specifies a specific weekday + "de cada mês" / "todo mês"
+- Examples: "primeira terça-feira de cada mês", "última sexta do mês", "terceira quarta-feira"
+- Set recurrence_weekday to the weekday number (1=segunda, 2=terça, 3=quarta, 4=quinta, 5=sexta, 6=sábado, 0=domingo)
+- Set recurrence_nth to: 1 (primeira), 2 (segunda), 3 (terceira), 4 (quarta), 5 (quinta), -1 (última/último)
+
+For recurrence_type "monthly_last_business_day":
+- Use when the user says "último dia útil do mês" or similar
+- Set recurrence_weekday to null, recurrence_nth to null
+
+For recurrence_type "monthly_first_business_day":
+- Use when the user says "primeiro dia útil do mês" or similar
+- Set recurrence_weekday to null, recurrence_nth to null
+
+RECURRENCE_FALLBACK (use when no recurrence):
+{"recurrence_type":"none","recurrence_interval":0,"recurrence_weekday":null,"recurrence_nth":null,"max_occurrences":null,"end_date":null}
+
 Example: Me lembre de comprar pão às 14h  →  title "Comprar pão"
-{"recurrence_type":"none","recurrence_interval":0,"max_occurrences":null,"end_date":null}
+{"recurrence_type":"none","recurrence_interval":0,"recurrence_weekday":null,"recurrence_nth":null,"max_occurrences":null,"end_date":null}
 
 Example: Me lembre de fazer exercício todos os dias às 7h  →  title "Fazer exercício"
-{"recurrence_type":"daily","recurrence_interval":1,"max_occurrences":null,"end_date":null}
+{"recurrence_type":"daily","recurrence_interval":1,"recurrence_weekday":null,"recurrence_nth":null,"max_occurrences":null,"end_date":null}
 
 Example: Me lembre de lavar louça toda terça-feira às 14h  →  title "Lavar louça"
-{"recurrence_type":"weekly","recurrence_interval":1,"max_occurrences":null,"end_date":null}
+{"recurrence_type":"weekly","recurrence_interval":1,"recurrence_weekday":null,"recurrence_nth":null,"max_occurrences":null,"end_date":null}
 
 Example: Me lembre de tomar remédio a cada 8h durante 5 dias  →  title "Tomar remédio"
-{"recurrence_type":"hourly","recurrence_interval":8,"max_occurrences":null,"end_date":"2026-03-16 08:00:00"}
+{"recurrence_type":"hourly","recurrence_interval":8,"recurrence_weekday":null,"recurrence_nth":null,"max_occurrences":null,"end_date":"2026-03-16 08:00:00"}
 
 NOTE: Sub-hour intervals (e.g. "a cada 15 minutos") are not supported by the current recurrence engine.
 The engine uses JavaScript's setHours(getHours() + interval), which truncates floats — so 0.25 would
@@ -294,7 +363,13 @@ add 0 hours. Until the engine is updated to support minute-level precision, alwa
 whole number of hours (minimum 1) for hourly recurrence_interval.
 
 Example: Me lembre de olhar o celular 5x a cada 15 minutos  →  title "Olhar o celular"
-{"recurrence_type":"hourly","recurrence_interval":1,"max_occurrences":5,"end_date":null}
+{"recurrence_type":"hourly","recurrence_interval":1,"recurrence_weekday":null,"recurrence_nth":null,"max_occurrences":5,"end_date":null}
+
+Example: Me lembre todo último dia útil do mês às 10h  →  title "Lembrete mensal"
+{"recurrence_type":"monthly_last_business_day","recurrence_interval":1,"recurrence_weekday":null,"recurrence_nth":null,"max_occurrences":null,"end_date":null}
+
+Example: Me lembre toda primeira terça-feira de cada mês às 9h  →  title "Lembrete mensal"
+{"recurrence_type":"monthly_nth_weekday","recurrence_interval":1,"recurrence_weekday":2,"recurrence_nth":1,"max_occurrences":null,"end_date":null}
 `;
 
 export const PROMPT_IDENTIFY_DELAY = (message: string, currentScheduledTime: string) => `

@@ -43,6 +43,7 @@ export async function triggerReminders() {
                     reminder.scheduledTime,
                     reminder.recurrence_type,
                     reminder.recurrence_interval,
+                    { weekday: reminder.recurrence_weekday, nth: reminder.recurrence_nth },
                 );
 
                 const stop = shouldStopRecurrence({

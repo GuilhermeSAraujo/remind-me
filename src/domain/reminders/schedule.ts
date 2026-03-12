@@ -38,6 +38,7 @@ export async function scheduleReminder({
                 scheduledTime,
                 reminderData.recurrence_type,
                 reminderData.recurrence_interval,
+                { weekday: reminderData.recurrence_weekday, nth: reminderData.recurrence_nth },
             );
         }
 
@@ -48,6 +49,8 @@ export async function scheduleReminder({
             scheduledTime: scheduledTime,
             recurrence_type: reminderData.recurrence_type,
             recurrence_interval: reminderData.recurrence_interval,
+            recurrence_weekday: reminderData.recurrence_weekday ?? null,
+            recurrence_nth: reminderData.recurrence_nth ?? null,
             status: "pending",
             maxOccurrences: reminderData.max_occurrences ?? null,
             endDate: reminderData.end_date ? parseBrazilDateString(reminderData.end_date) : null,
@@ -71,15 +74,15 @@ interface ReminderData {
     title: string;
     date: string;
     recurrence_type:
-    | "hourly"
-    | "daily"
-    | "weekly"
-    | "monthly"
-    | "yearly"
-    | "weekday"
-    | "weekend"
-    | "none";
+        | "hourly" | "daily" | "weekly" | "monthly" | "yearly"
+        | "weekday" | "weekend"
+        | "monthly_nth_weekday"
+        | "monthly_last_business_day"
+        | "monthly_first_business_day"
+        | "none";
     recurrence_interval: number;
+    recurrence_weekday: number | null;
+    recurrence_nth: number | null;
     max_occurrences?: number | null;
     end_date?: string | null;
 }
@@ -92,6 +95,8 @@ interface BaseReminderData {
 interface RecurrenceData {
     recurrence_type: ReminderData["recurrence_type"];
     recurrence_interval: number;
+    recurrence_weekday: number | null;
+    recurrence_nth: number | null;
     max_occurrences: number | null;
     end_date: string | null;
 }
@@ -99,6 +104,8 @@ interface RecurrenceData {
 const RECURRENCE_FALLBACK: RecurrenceData = {
     recurrence_type: "none",
     recurrence_interval: 0,
+    recurrence_weekday: null,
+    recurrence_nth: null,
     max_occurrences: null,
     end_date: null,
 };
@@ -159,12 +166,44 @@ async function extractReminderDataMultiPrompt(
             date: base.date,
             recurrence_type: recurrenceData.recurrence_type,
             recurrence_interval: recurrenceData.recurrence_interval,
+            recurrence_weekday: recurrenceData.recurrence_weekday ?? null,
+            recurrence_nth: recurrenceData.recurrence_nth ?? null,
             max_occurrences: recurrenceData.max_occurrences,
             end_date: recurrenceData.end_date,
         });
     }
 
     return reminders;
+}
+
+const CALENDAR_RULE_TYPES = [
+    "monthly_nth_weekday",
+    "monthly_last_business_day",
+    "monthly_first_business_day",
+] as const;
+
+function formatCalendarRuleRecurrence(reminderData: ReminderData): string {
+    const ORDINALS: Record<number, string> = {
+        1: "primeira", 2: "segunda", 3: "terceira", 4: "quarta", 5: "quinta", [-1]: "última",
+    };
+    const WEEKDAYS: Record<number, string> = {
+        0: "domingo", 1: "segunda-feira", 2: "terça-feira",
+        3: "quarta-feira", 4: "quinta-feira", 5: "sexta-feira", 6: "sábado",
+    };
+
+    switch (reminderData.recurrence_type) {
+        case "monthly_nth_weekday": {
+            const ord = ORDINALS[reminderData.recurrence_nth ?? 1] ?? "primeira";
+            const wd = WEEKDAYS[reminderData.recurrence_weekday ?? 1] ?? "segunda-feira";
+            return `toda ${ord} ${wd} do mês`;
+        }
+        case "monthly_last_business_day":
+            return "todo último dia útil do mês";
+        case "monthly_first_business_day":
+            return "todo primeiro dia útil do mês";
+        default:
+            return "";
+    }
 }
 
 function formatReminderCreatedMessage(reminderData: ReminderData): string {
@@ -181,10 +220,14 @@ function formatReminderCreatedMessage(reminderData: ReminderData): string {
     const reminderDate = parseBrazilDateString(reminderData.date);
     const formattedDateTime = formatFriendlyDateTime(reminderDate);
 
+    const isCalendarRule = (CALENDAR_RULE_TYPES as readonly string[]).includes(reminderData.recurrence_type);
+
     const recurrenceString =
-        reminderData.recurrence_type !== "none"
-            ? `, com recorrência a cada ${reminderData.recurrence_interval} ${recurrenceTypePtBr[reminderData.recurrence_type]}`
-            : "";
+        reminderData.recurrence_type === "none"
+            ? ""
+            : isCalendarRule
+            ? `, com recorrência ${formatCalendarRuleRecurrence(reminderData)}`
+            : `, com recorrência a cada ${reminderData.recurrence_interval} ${recurrenceTypePtBr[reminderData.recurrence_type]}`;
 
     const extraParts: string[] = [];
 
@@ -225,10 +268,14 @@ function formatMultipleRemindersCreatedMessage(remindersData: ReminderData[]): s
             const reminderDate = parseBrazilDateString(reminder.date);
             const formattedDateTime = formatFriendlyDateTime(reminderDate);
 
+            const isCalendarRule = (CALENDAR_RULE_TYPES as readonly string[]).includes(reminder.recurrence_type);
+
             const recurrenceString =
-                reminder.recurrence_type !== "none"
-                    ? `, com recorrência a cada ${reminder.recurrence_interval} ${reminder.recurrence_interval === 1 ? recurrenceTypePtBr[reminder.recurrence_type] : recurrenceTypePtBr[reminder.recurrence_type] + "s"}`
-                    : "";
+                reminder.recurrence_type === "none"
+                    ? ""
+                    : isCalendarRule
+                    ? `, com recorrência ${formatCalendarRuleRecurrence(reminder)}`
+                    : `, com recorrência a cada ${reminder.recurrence_interval} ${reminder.recurrence_interval === 1 ? recurrenceTypePtBr[reminder.recurrence_type] : recurrenceTypePtBr[reminder.recurrence_type] + "s"}`;
 
             const extraParts: string[] = [];
 

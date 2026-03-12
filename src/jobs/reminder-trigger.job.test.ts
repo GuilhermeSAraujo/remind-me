@@ -34,6 +34,8 @@ function makeReminder(overrides: Record<string, unknown> = {}) {
         scheduledTime: new Date("2026-03-11T08:00:00"),
         recurrence_type: "hourly",
         recurrence_interval: 8,
+        recurrence_weekday: null,
+        recurrence_nth: null,
         status: "pending",
         maxOccurrences: null,
         endDate: null,
@@ -111,5 +113,44 @@ describe("triggerReminders – end conditions", () => {
             { _id: "id1" },
             expect.objectContaining({ status: "sent" }),
         );
+    });
+
+    it("reschedules monthly_nth_weekday using calendar rule (first Tuesday, March → April)", async () => {
+        mockFind.mockResolvedValue([
+            makeReminder({
+                scheduledTime: new Date("2026-03-03T10:00:00"),
+                recurrence_type: "monthly_nth_weekday",
+                recurrence_interval: 1,
+                recurrence_weekday: 2,
+                recurrence_nth: 1,
+            }),
+        ]);
+
+        await triggerReminders();
+
+        const call = mockUpdateOne.mock.calls[0]!;
+        const updatedScheduledTime: Date = call[1].scheduledTime;
+        // First Tuesday of April 2026 = April 7
+        expect(updatedScheduledTime.getMonth()).toBe(3);  // April
+        expect(updatedScheduledTime.getDate()).toBe(7);
+    });
+
+    it("reschedules monthly_last_business_day correctly (March 31 → April 30)", async () => {
+        mockFind.mockResolvedValue([
+            makeReminder({
+                scheduledTime: new Date("2026-03-31T10:00:00"),
+                recurrence_type: "monthly_last_business_day",
+                recurrence_interval: 1,
+                recurrence_weekday: null,
+                recurrence_nth: null,
+            }),
+        ]);
+
+        await triggerReminders();
+
+        const call = mockUpdateOne.mock.calls[0]!;
+        const updatedScheduledTime: Date = call[1].scheduledTime;
+        expect(updatedScheduledTime.getMonth()).toBe(3); // April
+        expect(updatedScheduledTime.getDate()).toBe(30);
     });
 });
