@@ -204,6 +204,12 @@ Respond ONLY with a valid JSON ARRAY in PLAINTEXT format with the following stru
 
 Do NOT include any recurrence, frequency, or repetition information. Extract only title and date.
 
+For messages that describe the SAME reminder happening multiple times (for example: "de 4 em 4 horas",
+"às 8h, 12h, 16h e 20h", "várias vezes hoje"):
+- Create ONLY ONE reminder object in the array for that reminder.
+- Use the FIRST occurrence that makes sense as the "date" value.
+- Only create multiple objects when the message clearly describes DIFFERENT reminder tasks (different actions/titles).
+
 RULES FOR date:
 - Schedule for the first occurrence that makes sense based on the message.
 - If the time has already passed today, schedule for the next appropriate occurrence.
@@ -226,6 +232,22 @@ Example: Me lembre de lavar louça toda terça-feira 14h e de ir ao mercado toda
     {
         "title": "Ir ao mercado",
         "date": "2026-01-22 19:00:00"
+    }
+]
+
+Example: Me lembre de tomar remédio hoje de 4 em 4 horas, partindo de agora
+[
+    {
+        "title": "Tomar remédio",
+        "date": "2026-01-17 13:39:00"
+    }
+]
+
+Example: Me lembre de tomar remédio hoje às 8h, 12h, 16h e 20h
+[
+    {
+        "title": "Tomar remédio",
+        "date": "2026-01-17 08:00:00"
     }
 ]
 `;
