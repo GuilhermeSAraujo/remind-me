@@ -10,6 +10,20 @@ const chatSessions = new Map<string, { session: ChatSession; lastActivity: numbe
 
 const SESSION_TIMEOUT = 10 * 60 * 1000;
 
+let identificationType: "single-prompt" | "multi-prompt" = "single-prompt"
+
+export function setIdentificationType (string : "single-prompt" | "multi-prompt"){
+  if(!["single-prompt", "multi-prompt"].includes(string)){
+    throw new Error('Invalid prompt identification type')
+  }
+  
+  identificationType = string;
+}
+
+export function getIdentificationType(): "single-prompt" | "multi-prompt" {
+  return identificationType;
+}
+
 setInterval(() => {
   const now = Date.now();
   for (const [userId, data] of chatSessions.entries()) {

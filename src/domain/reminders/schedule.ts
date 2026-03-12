@@ -1,5 +1,9 @@
-import { generateContentWithContext } from "../../integrations/ai/gemini-client";
-import { PROMPT_EXTRACT_REMINDER_DATA } from "../../integrations/ai/gemini-constants";
+import { generateContentWithContext, getIdentificationType } from "../../integrations/ai/gemini-client";
+import {
+    PROMPT_EXTRACT_REMINDER_DATA,
+    PROMPT_EXTRACT_REMINDER_BASE,
+    PROMPT_EXTRACT_RECURRENCE,
+} from "../../integrations/ai/gemini-constants";
 import { Reminder } from "./reminder.model";
 import { UserData } from "../../api/middlewares/user-extractor.middleware";
 import {
@@ -80,17 +84,87 @@ interface ReminderData {
     end_date?: string | null;
 }
 
+interface BaseReminderData {
+    title: string;
+    date: string;
+}
+
+interface RecurrenceData {
+    recurrence_type: ReminderData["recurrence_type"];
+    recurrence_interval: number;
+    max_occurrences: number | null;
+    end_date: string | null;
+}
+
+const RECURRENCE_FALLBACK: RecurrenceData = {
+    recurrence_type: "none",
+    recurrence_interval: 0,
+    max_occurrences: null,
+    end_date: null,
+};
+
 async function extractReminderData(message: string, userId: string): Promise<ReminderData[]> {
+    if (getIdentificationType() === "multi-prompt") {
+        return extractReminderDataMultiPrompt(message, userId);
+    }
+
     await startTyping({ phone: userId });
     let reminderData = await generateContentWithContext(
         userId,
         PROMPT_EXTRACT_REMINDER_DATA(message, toBrazilDateTimeString(new Date()), getBrazilWeekday()),
         "extract",
     );
-
     reminderData = reminderData.replace(/```json/g, "").replace(/```/g, "");
-
     return JSON.parse(reminderData) as ReminderData[];
+}
+
+async function extractReminderDataMultiPrompt(
+    message: string,
+    userId: string,
+): Promise<ReminderData[]> {
+    await startTyping({ phone: userId });
+
+    // Step 1: extract base fields (title + date only)
+    let baseRaw = await generateContentWithContext(
+        userId,
+        PROMPT_EXTRACT_REMINDER_BASE(message, toBrazilDateTimeString(new Date()), getBrazilWeekday()),
+        "extract",
+    );
+    baseRaw = baseRaw.replace(/```json/g, "").replace(/```/g, "");
+    const baseReminders = JSON.parse(baseRaw) as BaseReminderData[];
+
+    // Step 2: extract recurrence for each reminder (reuses same chat session context)
+    await startTyping({ phone: userId });
+    const reminders: ReminderData[] = [];
+    for (const base of baseReminders) {
+        let recurrenceData: RecurrenceData = RECURRENCE_FALLBACK;
+        try {
+            let recurrenceRaw = await generateContentWithContext(
+                userId,
+                PROMPT_EXTRACT_RECURRENCE(message, base.title, base.date),
+                "extract",
+            );
+            recurrenceRaw = recurrenceRaw.replace(/```json/g, "").replace(/```/g, "");
+            recurrenceData = JSON.parse(recurrenceRaw) as RecurrenceData;
+        } catch (err) {
+            const isParseError = err instanceof SyntaxError;
+            console.warn(
+                `[AI] Recurrence ${isParseError ? "parse" : "call"} failed for "${base.title}", falling back to none:`,
+                err,
+            );
+        }
+
+        reminders.push({
+            title: base.title,
+            date: base.date,
+            recurrence_type: recurrenceData.recurrence_type,
+            recurrence_interval: recurrenceData.recurrence_interval,
+            max_occurrences: recurrenceData.max_occurrences,
+            end_date: recurrenceData.end_date,
+        });
+    }
+
+    return reminders;
 }
 
 function formatReminderCreatedMessage(reminderData: ReminderData): string {

@@ -184,6 +184,97 @@ Example: Me lembre de olhar o celular 5x a cada 15 minutos
 ]
 `;
 
+export const PROMPT_EXTRACT_REMINDER_BASE = (
+    message: string,
+    currentDateTime: string,
+    weekday: string,
+) => `
+You are given a message from a user and you need to extract reminders from it.
+The user message is: ${message}
+Current date and time is: ${currentDateTime}. The weekday is ${weekday}.
+
+Extract ALL reminders from the message. If there's only one reminder, return an array with one element.
+Respond ONLY with a valid JSON ARRAY in PLAINTEXT format with the following structure:
+[
+    {
+        "title": string,
+        "date": string   (format: "YYYY-MM-DD HH:mm:ss")
+    }
+]
+
+Do NOT include any recurrence, frequency, or repetition information. Extract only title and date.
+
+RULES FOR date:
+- Schedule for the first occurrence that makes sense based on the message.
+- If the time has already passed today, schedule for the next appropriate occurrence.
+- If no time is specified, use a sensible default (e.g. 08:00:00).
+
+Example: Me lembre de comprar pão às 14h
+[
+    {
+        "title": "Comprar pão",
+        "date": "2026-01-17 14:00:00"
+    }
+]
+
+Example: Me lembre de lavar louça toda terça-feira 14h e de ir ao mercado toda quarta-feira 19h
+[
+    {
+        "title": "Lavar louça",
+        "date": "2026-01-21 14:00:00"
+    },
+    {
+        "title": "Ir ao mercado",
+        "date": "2026-01-22 19:00:00"
+    }
+]
+`;
+
+export const PROMPT_EXTRACT_RECURRENCE = (
+    originalMessage: string,
+    title: string,
+    date: string,
+) => `
+You already identified a reminder: title "${title}", scheduled for ${date}.
+The original user message was: ${originalMessage}
+
+Now extract ONLY the recurrence information for this reminder.
+Respond ONLY with a valid JSON OBJECT in PLAINTEXT format:
+{
+    "recurrence_type": "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "weekday" | "weekend" | "none",
+    "recurrence_interval": number,
+    "max_occurrences": number | null,
+    "end_date": string | null   (format: "YYYY-MM-DD HH:mm:ss")
+}
+
+CRITICAL RULES:
+- Default to "none" with interval 0. Only set a recurrence type if the message CLEARLY and EXPLICITLY states repetition.
+- Words like "todo dia", "toda semana", "diariamente", "semanalmente", "a cada X", "toda terça", etc. indicate recurrence.
+- A single future date ("amanhã", "na sexta", "às 14h") is NOT recurrence — use "none".
+- max_occurrences: set only if the user specifies a finite count (e.g. "5 vezes", "3x"). Otherwise null.
+- end_date: set only if the user specifies a duration or end date (e.g. "durante 5 dias", "até sexta"). Otherwise null.
+
+Example: Me lembre de comprar pão às 14h  →  title "Comprar pão"
+{"recurrence_type":"none","recurrence_interval":0,"max_occurrences":null,"end_date":null}
+
+Example: Me lembre de fazer exercício todos os dias às 7h  →  title "Fazer exercício"
+{"recurrence_type":"daily","recurrence_interval":1,"max_occurrences":null,"end_date":null}
+
+Example: Me lembre de lavar louça toda terça-feira às 14h  →  title "Lavar louça"
+{"recurrence_type":"weekly","recurrence_interval":1,"max_occurrences":null,"end_date":null}
+
+Example: Me lembre de tomar remédio a cada 8h durante 5 dias  →  title "Tomar remédio"
+{"recurrence_type":"hourly","recurrence_interval":8,"max_occurrences":null,"end_date":"2026-03-16 08:00:00"}
+
+NOTE: Sub-hour intervals (e.g. "a cada 15 minutos") are not supported by the current recurrence engine.
+The engine uses JavaScript's setHours(getHours() + interval), which truncates floats — so 0.25 would
+add 0 hours. Until the engine is updated to support minute-level precision, always use the nearest
+whole number of hours (minimum 1) for hourly recurrence_interval.
+
+Example: Me lembre de olhar o celular 5x a cada 15 minutos  →  title "Olhar o celular"
+{"recurrence_type":"hourly","recurrence_interval":1,"max_occurrences":5,"end_date":null}
+`;
+
 export const PROMPT_IDENTIFY_DELAY = (message: string, currentScheduledTime: string) => `
   Task: update a reminder time by applying a delay.
   

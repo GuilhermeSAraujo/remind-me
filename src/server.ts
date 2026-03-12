@@ -12,6 +12,7 @@ import { startTyping } from "./integrations/whatsapp/start-typing";
 import type { MessagePayload } from "./integrations/whatsapp/types";
 import "./jobs/premium-payment.watcher";
 import "./jobs/scheduler";
+import { setIdentificationType } from "./integrations/ai/gemini-client";
 
 type Variables = {
     messageBody: MessagePayload;
@@ -32,6 +33,13 @@ app.post("", extractUserData, async (c) => {
     }
 
     await reactMessage(userData.messageId, "⏳");
+
+    if (body.body.includes("setIdentification")) {
+        const identificationTypeFromMessage =
+            body.body.split(" ")?.[1] === "multi-prompt" ? "multi-prompt" : "single-prompt";
+
+        setIdentificationType(identificationTypeFromMessage);
+    }
 
     await startTyping({ phone: userData.phoneNumber });
     

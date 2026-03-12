@@ -10,6 +10,7 @@ const { mockGenerateContent, mockSendMessage, mockReminderCreate, mockStartTypin
 
 vi.mock("../../integrations/ai/gemini-client", () => ({
     generateContentWithContext: mockGenerateContent,
+    getIdentificationType: () => "single-prompt",
 }));
 
 vi.mock("../../integrations/whatsapp/send-message", () => ({
