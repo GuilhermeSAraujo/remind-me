@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { mockGenerateContent, mockSendMessage, mockReminderCreate, mockStartTyping } =
+const { mockGenerateContent, mockSendReply, mockReminderCreate, mockStartTyping } =
     vi.hoisted(() => ({
         mockGenerateContent: vi.fn(),
-        mockSendMessage: vi.fn(),
+        mockSendReply: vi.fn(),
         mockReminderCreate: vi.fn(),
         mockStartTyping: vi.fn(),
     }));
@@ -13,8 +13,8 @@ vi.mock("../../integrations/ai/gemini-client", () => ({
     getIdentificationType: () => "single-prompt",
 }));
 
-vi.mock("../../integrations/whatsapp/send-message", () => ({
-    sendMessage: mockSendMessage,
+vi.mock("../../integrations/whatsapp/send-reply", () => ({
+    sendReply: mockSendReply,
 }));
 
 vi.mock("../../integrations/whatsapp/start-typing", () => ({
@@ -33,6 +33,7 @@ describe("scheduleReminder – confirmation messages with end date and max occur
     beforeEach(() => {
         vi.clearAllMocks();
         mockGenerateContent.mockResolvedValue("[]");
+        mockSendReply.mockResolvedValue(true);
     });
 
     it("includes end date and max occurrences in single reminder confirmation", async () => {
@@ -50,16 +51,16 @@ describe("scheduleReminder – confirmation messages with end date and max occur
         );
 
         await scheduleReminder({
-            // Minimal fields for this test – type cast to avoid coupling to full UserData shape
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            userData: { phoneNumber: "5511999999999" } as any,
+            userData: { phoneNumber: "5511999999999", messageId: "wamid.SAMPLE", name: "Test" } as any,
             message: "Me lembre de tomar remédio",
             messageId: "wamid.SAMPLE",
         });
 
-        expect(mockSendMessage).toHaveBeenCalledTimes(1);
-        const sent = mockSendMessage.mock.calls[0]![0]!;
-
+        expect(mockSendReply).toHaveBeenCalledTimes(1);
+        const sent = mockSendReply.mock.calls[0]![0]!;
+        expect(sent.messageId).toBe("wamid.SAMPLE");
+        expect(sent.phone).toBe("5511999999999");
         expect(sent.message).toContain("até 31/03/2026");
         expect(sent.message).toContain("máx. 5 vez");
     });
@@ -88,13 +89,15 @@ describe("scheduleReminder – confirmation messages with end date and max occur
 
         await scheduleReminder({
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            userData: { phoneNumber: "5511999999999" } as any,
+            userData: { phoneNumber: "5511999999999", messageId: "wamid.SAMPLE2", name: "Test" } as any,
             message: "Lembretes de remédio",
             messageId: "wamid.SAMPLE2",
         });
 
-        expect(mockSendMessage).toHaveBeenCalledTimes(1);
-        const sent = mockSendMessage.mock.calls[0]![0]!;
+        expect(mockSendReply).toHaveBeenCalledTimes(1);
+        const sent = mockSendReply.mock.calls[0]![0]!;
+        expect(sent.messageId).toBe("wamid.SAMPLE2");
+        expect(sent.phone).toBe("5511999999999");
 
         const text: string = sent.message;
 

@@ -9,6 +9,7 @@ import { clearChatSession, generateContentWithContext } from "../ai/gemini-clien
 import { PROMPT_CLASSIFY_MESSAGE_INTENT } from "../ai/gemini-constants";
 import { BUY_PREMIUM_MESSAGE, FREE_USER_REMINDER_LIMIT_MESSAGE, HELP_MESSAGES, RATE_LIMIT_EXCEEDED_MESSAGE } from "./constants";
 import { detectMessageIntent, type MessageIntent } from "./intent-detector";
+import { enqueueReminder } from "./reminder-queue";
 import { reactMessage } from "./react-message";
 import { sendMessage } from "./send-message";
 import { sendMessages } from "./send-messages";
@@ -95,11 +96,13 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                     return;
                 }
 
-                await scheduleReminder({
-                    userData,
-                    message: body.body,
-                    messageId: body.id
-                });
+                enqueueReminder(() =>
+                    scheduleReminder({
+                        userData,
+                        message: body.body,
+                        messageId: body.id,
+                    })
+                );
                 await reactMessage(userData.messageId, "✅");
 
                 break;

@@ -12,8 +12,11 @@ import {
     parseBrazilDateString,
     toBrazilDateTimeString,
 } from "../../shared/utils/date.utils";
-import { sendMessage } from "../../integrations/whatsapp/send-message";
+import { sendReply } from "../../integrations/whatsapp/send-reply";
 import { startTyping } from "../../integrations/whatsapp/start-typing";
+
+const MESSAGE_AI_TEMPORARY_ERROR =
+    "Ocorreu um erro temporário. Seu lembrete será processado assim que a IA voltar.";
 import { calculateNextScheduledTime } from "./recurrence.utils";
 
 export async function scheduleReminder({
@@ -25,7 +28,14 @@ export async function scheduleReminder({
     message: string;
     messageId: string;
 }) {
-    const remindersData = await extractReminderData(message, userData.phoneNumber);
+    const onRetry = () => {
+        void sendReply({
+            phone: userData.phoneNumber,
+            messageId: userData.messageId,
+            message: MESSAGE_AI_TEMPORARY_ERROR,
+        });
+    };
+    const remindersData = await extractReminderData(message, userData.phoneNumber, onRetry);
 
     // Criar todos os lembretes
     for (const reminderData of remindersData) {
@@ -64,8 +74,9 @@ export async function scheduleReminder({
             ? formatReminderCreatedMessage(remindersData[0]!)
             : formatMultipleRemindersCreatedMessage(remindersData);
 
-    await sendMessage({
+    await sendReply({
         phone: userData.phoneNumber,
+        messageId: userData.messageId,
         message: successMessage,
     });
 }
@@ -110,9 +121,13 @@ const RECURRENCE_FALLBACK: RecurrenceData = {
     end_date: null,
 };
 
-async function extractReminderData(message: string, userId: string): Promise<ReminderData[]> {
+async function extractReminderData(
+    message: string,
+    userId: string,
+    onRetry?: (attempt: number) => void | Promise<void>,
+): Promise<ReminderData[]> {
     if (getIdentificationType() === "multi-prompt") {
-        return extractReminderDataMultiPrompt(message, userId);
+        return extractReminderDataMultiPrompt(message, userId, onRetry);
     }
 
     await startTyping({ phone: userId });
@@ -120,6 +135,7 @@ async function extractReminderData(message: string, userId: string): Promise<Rem
         userId,
         PROMPT_EXTRACT_REMINDER_DATA(message, toBrazilDateTimeString(new Date()), getBrazilWeekday()),
         "extract",
+        onRetry,
     );
     reminderData = reminderData.replace(/```json/g, "").replace(/```/g, "");
     return JSON.parse(reminderData) as ReminderData[];
@@ -128,6 +144,7 @@ async function extractReminderData(message: string, userId: string): Promise<Rem
 async function extractReminderDataMultiPrompt(
     message: string,
     userId: string,
+    onRetry?: (attempt: number) => void | Promise<void>,
 ): Promise<ReminderData[]> {
     await startTyping({ phone: userId });
 
@@ -136,6 +153,7 @@ async function extractReminderDataMultiPrompt(
         userId,
         PROMPT_EXTRACT_REMINDER_BASE(message, toBrazilDateTimeString(new Date()), getBrazilWeekday()),
         "extract",
+        onRetry,
     );
     baseRaw = baseRaw.replace(/```json/g, "").replace(/```/g, "");
     const baseReminders = JSON.parse(baseRaw) as BaseReminderData[];
@@ -150,6 +168,7 @@ async function extractReminderDataMultiPrompt(
                 userId,
                 PROMPT_EXTRACT_RECURRENCE(message, base.title, base.date),
                 "extract",
+                onRetry,
             );
             recurrenceRaw = recurrenceRaw.replace(/```json/g, "").replace(/```/g, "");
             recurrenceData = JSON.parse(recurrenceRaw) as RecurrenceData;

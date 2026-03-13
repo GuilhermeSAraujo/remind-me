@@ -10,6 +10,20 @@ const chatSessions = new Map<string, { session: ChatSession; lastActivity: numbe
 
 const SESSION_TIMEOUT = 10 * 60 * 1000;
 
+const TRANSIENT_STATUS = new Set([408, 429, 500, 502, 503, 504]);
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 2000;
+const RETRY_MULTIPLIER = 2;
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isTransientError(error: unknown): boolean {
+  const status = (error as { status?: number }).status;
+  return typeof status === "number" && TRANSIENT_STATUS.has(status);
+}
+
 let identificationType: "single-prompt" | "multi-prompt" = "single-prompt"
 
 export function setIdentificationType (string : "single-prompt" | "multi-prompt"){
@@ -62,28 +76,41 @@ export interface AIResponse {
 export async function generateContentWithContext(
   userId: string,
   prompt: string,
-  operation?: AIOperationType
+  operation?: AIOperationType,
+  onRetry?: (attempt: number) => void | Promise<void>
 ): Promise<string> {
-  try {
-    const session = getChatSession(userId);
-    const result = await session.sendMessage(prompt);
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const session = getChatSession(userId);
+      const result = await session.sendMessage(prompt);
 
-    // Extract token usage from response metadata
-    const usageMetadata = result.response.usageMetadata;
-    const totalTokens = usageMetadata?.totalTokenCount || 0;
+      const usageMetadata = result.response.usageMetadata;
+      const totalTokens = usageMetadata?.totalTokenCount || 0;
 
-    // Record usage if operation type is provided
-    if (operation) {
-      await recordAIUsage(userId, operation, totalTokens);
+      if (operation) {
+        await recordAIUsage(userId, operation, totalTokens);
+        console.info(`[AI] (${userId.slice(-4)}) ${operation}: ${totalTokens} tokens`);
+      }
 
-      console.info(`[AI] (${userId.slice(-4)}) ${operation}: ${totalTokens} tokens`);
+      return result.response.text();
+    } catch (error) {
+      lastError = error;
+      console.error("[AI] Generation failed:", error);
+
+      if (attempt < MAX_RETRIES && isTransientError(error)) {
+        if (attempt === 1 && onRetry) {
+          await Promise.resolve(onRetry(attempt));
+        }
+        const waitMs = BASE_DELAY_MS * RETRY_MULTIPLIER ** (attempt - 1);
+        await delay(waitMs);
+        continue;
+      }
+
+      throw error;
     }
-
-    return result.response.text();
-  } catch (error) {
-    console.error("[AI] Generation failed:", error);
-    throw error;
   }
+  throw lastError;
 }
 
 export function clearChatSession(userId: string): void {
