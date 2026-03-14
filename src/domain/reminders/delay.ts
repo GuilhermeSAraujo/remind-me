@@ -43,11 +43,11 @@ export async function delayReminder({
     );
 
     if (!reminder) {
+        await reactMessage(userData.messageId, "🚫");
         await sendMessage({
             phone: userData.phoneNumber,
             message: "Não foi possível encontrar seu lembrete a ser adiado.",
         });
-        await reactMessage(userData.messageId, "🚫");
         return;
     }
 
@@ -57,11 +57,11 @@ export async function delayReminder({
         reminder.status = "pending";
         await reminder.save();
 
+        await reactMessage(userData.messageId, "✅");
         await sendMessage({
             phone: userData.phoneNumber,
             message: `Lembrete adiado com sucesso para daqui 5 minutos.`,
         });
-        await reactMessage(userData.messageId, "✅");
         return;
     }
 
@@ -80,17 +80,18 @@ export async function delayReminder({
         await reminder.save();
 
         const formattedNewTime = formatFriendlyDateTime(reminder.scheduledTime);
+        await reactMessage(userData.messageId, "✅");
         await sendMessage({
             phone: userData.phoneNumber,
             message: `Lembrete "${reminder.title}" adiado com sucesso para ${formattedNewTime}.`,
         });
     } catch (error) {
         console.error("[DELAY REMINDER] Failed to extract or parse delay data:", error);
+        await reactMessage(userData.messageId, "🚫");
         await sendMessage({
             phone: userData.phoneNumber,
             message:
                 "Erro ao processar o adiamento. Tente novamente com um formato válido (ex: '30 minutos', '2 dias', 'Dia 10/05 às 09:00').",
         });
-        await reactMessage(userData.messageId, "🚫");
     }
 }
