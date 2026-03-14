@@ -20,11 +20,11 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
 
     if (message.length > 250) {
         console.log("[PROCESSOR] ⚠ Message too long:", message.length);
+        await reactMessage(userData.messageId, "🚫");
         await sendMessage({
             phone: userData.phoneNumber,
             message: "Infelizmente, não é possível enviar mensagens muito longas. Por favor, envie uma mensagem mais curta.",
         });
-        await reactMessage(userData.messageId, "🚫");
         return;
     }
 
@@ -47,11 +47,11 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
 
             if (!rateLimitCheck.allowed) {
                 const resetInHours = rateLimitCheck.resetIn / (1000 * 60 * 60);
+                await reactMessage(userData.messageId, "🚫");
                 await sendMessage({
                     phone: userData.phoneNumber,
                     message: RATE_LIMIT_EXCEEDED_MESSAGE(resetInHours, userData.phoneNumber),
                 });
-                await reactMessage(userData.messageId, "🚫");
                 return;
             }
 
@@ -74,11 +74,11 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                     });
 
                     if (pendingRemindersCount >= 5) {
+                        await reactMessage(userData.messageId, "😢");
                         await sendMessage({
                             phone: userData.phoneNumber,
                             message: FREE_USER_REMINDER_LIMIT_MESSAGE(userData.phoneNumber),
                         });
-                        await reactMessage(userData.messageId, "😢");
                         return;
                     }
                 }
@@ -88,11 +88,11 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
 
                 if (!rateLimitCheck.allowed) {
                     const resetInHours = rateLimitCheck.resetIn / (1000 * 60 * 60);
+                    await reactMessage(userData.messageId, "🚫");
                     await sendMessage({
                         phone: userData.phoneNumber,
                         message: RATE_LIMIT_EXCEEDED_MESSAGE(resetInHours, userData.phoneNumber),
                     });
-                    await reactMessage(userData.messageId, "🚫");
                     return;
                 }
 
@@ -107,43 +107,43 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                 break;
 
             case "list_reminders":
-                await listReminders({ userData });
                 await reactMessage(userData.messageId, "📋");
+                await listReminders({ userData });
                 break;
 
             case "delete_reminder":
-                await deleteReminder({ userData, quotedMsgId: body.quotedMsgId, messageText: body.body });
                 await reactMessage(userData.messageId, "🗑️");
+                await deleteReminder({ userData, quotedMsgId: body.quotedMsgId, messageText: body.body });
                 break;
 
             case "delay_reminder":
-                await delayReminder({ userMessage: body.body, userData, quotedMsgId: body.quotedMsgId });
                 await reactMessage(userData.messageId, "✅");
+                await delayReminder({ userMessage: body.body, userData, quotedMsgId: body.quotedMsgId });
                 break;
 
             case "buy_premium":
+                await reactMessage(userData.messageId, "⭐");
                 await sendMessage({
                     phone: userData.phoneNumber,
                     message: BUY_PREMIUM_MESSAGE(userData.phoneNumber),
                 });
-                await reactMessage(userData.messageId, "⭐");
                 break;
 
             case "thank":
+                await reactMessage(userData.messageId, "😊");
                 await sendMessage({
                     phone: userData.phoneNumber,
                     message: "De nada! Estou aqui para ajudar. Se precisar de algo, é só falar!",
                 });
-                await reactMessage(userData.messageId, "😊");
                 break;
 
             case "help":
             default:
+                await reactMessage(userData.messageId, "ℹ️");
                 await sendMessages({
                     phone: userData.phoneNumber,
                     messages: HELP_MESSAGES,
                 });
-                await reactMessage(userData.messageId, "ℹ️");
                 break;
         }
     } finally {
