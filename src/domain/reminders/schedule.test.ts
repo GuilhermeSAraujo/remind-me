@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { mockGenerateContent, mockSendReply, mockReminderCreate, mockStartTyping } =
+const { mockGenerateContent, mockSendReply, mockReminderCreate, mockReactMessage } =
     vi.hoisted(() => ({
         mockGenerateContent: vi.fn(),
         mockSendReply: vi.fn(),
         mockReminderCreate: vi.fn(),
-        mockStartTyping: vi.fn(),
+        mockReactMessage: vi.fn(),
     }));
 
 vi.mock("../../integrations/ai/gemini-client", () => ({
@@ -17,8 +17,8 @@ vi.mock("../../integrations/whatsapp/send-reply", () => ({
     sendReply: mockSendReply,
 }));
 
-vi.mock("../../integrations/whatsapp/start-typing", () => ({
-    startTyping: mockStartTyping,
+vi.mock("../../integrations/whatsapp/react-message", () => ({
+    reactMessage: mockReactMessage,
 }));
 
 vi.mock("./reminder.model", () => ({
@@ -34,6 +34,7 @@ describe("scheduleReminder – confirmation messages with end date and max occur
         vi.clearAllMocks();
         mockGenerateContent.mockResolvedValue("[]");
         mockSendReply.mockResolvedValue(true);
+        mockReactMessage.mockResolvedValue(true);
     });
 
     it("includes end date and max occurrences in single reminder confirmation", async () => {

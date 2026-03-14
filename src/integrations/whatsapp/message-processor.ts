@@ -103,7 +103,6 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                         messageId: body.id,
                     })
                 );
-                await reactMessage(userData.messageId, "✅");
 
                 break;
 

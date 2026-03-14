@@ -13,11 +13,11 @@ import {
     toBrazilDateTimeString,
 } from "../../shared/utils/date.utils";
 import { sendReply } from "../../integrations/whatsapp/send-reply";
-import { startTyping } from "../../integrations/whatsapp/start-typing";
 
 const MESSAGE_AI_TEMPORARY_ERROR =
     "Ocorreu um erro temporário. Seu lembrete será processado assim que a IA voltar.";
 import { calculateNextScheduledTime } from "./recurrence.utils";
+import { reactMessage } from "../../integrations/whatsapp/react-message";
 
 export async function scheduleReminder({
     userData,
@@ -66,6 +66,8 @@ export async function scheduleReminder({
             endDate: reminderData.end_date ? parseBrazilDateString(reminderData.end_date) : null,
             sentCount: 0,
         });
+
+        await reactMessage(messageId, "✅");
     }
 
     // Formatar mensagem de sucesso
@@ -130,7 +132,6 @@ async function extractReminderData(
         return extractReminderDataMultiPrompt(message, userId, onRetry);
     }
 
-    await startTyping({ phone: userId });
     let reminderData = await generateContentWithContext(
         userId,
         PROMPT_EXTRACT_REMINDER_DATA(message, toBrazilDateTimeString(new Date()), getBrazilWeekday()),
@@ -146,8 +147,6 @@ async function extractReminderDataMultiPrompt(
     userId: string,
     onRetry?: (attempt: number) => void | Promise<void>,
 ): Promise<ReminderData[]> {
-    await startTyping({ phone: userId });
-
     // Step 1: extract base fields (title + date only)
     let baseRaw = await generateContentWithContext(
         userId,
@@ -159,7 +158,6 @@ async function extractReminderDataMultiPrompt(
     const baseReminders = JSON.parse(baseRaw) as BaseReminderData[];
 
     // Step 2: extract recurrence for each reminder (reuses same chat session context)
-    await startTyping({ phone: userId });
     const reminders: ReminderData[] = [];
     for (const base of baseReminders) {
         let recurrenceData: RecurrenceData = RECURRENCE_FALLBACK;
