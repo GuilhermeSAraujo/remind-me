@@ -326,9 +326,9 @@ CRITICAL RULES:
 - Words like "todo dia", "toda semana", "diariamente", "semanalmente", "toda terça", etc. indicate recurrence.
 - A single future date ("amanhã", "na sexta", "às 14h") is NOT recurrence — use "none".
 - max_occurrences: set only if the user specifies a finite count (e.g. "5 vezes", "3x"). Otherwise null.
-- end_date: set only if the user specifies a duration or end date (e.g. "durante 5 dias", "até sexta"). Otherwise null.
-- HOURLY SCOPE RULE: for recurrence_type "hourly" —
-  • No multi-day scope marker ("todo dia", "diariamente", "toda semana", "durante X dias", "por X dias"): set end_date to [today] 23:59:59 (use the first occurrence date's date portion).
+- end_date: set only if the user specifies a duration or end date (e.g. "durante 5 dias", "até sexta"). Otherwise null. (Exception: see HOURLY SCOPE RULE below.)
+- HOURLY SCOPE RULE (overrides the end_date rule above for recurrence_type "hourly") —
+  • No multi-day scope marker ("todo dia", "diariamente", "toda semana", "durante X dias", "por X dias"): set end_date to [first occurrence date] 23:59:59 (use the date portion from the scheduled date shown above).
   • Explicit duration ("durante 5 dias"): compute end_date = first occurrence + duration.
   • Eternal marker present ("todo dia", "diariamente"): leave end_date null.
 
@@ -355,11 +355,19 @@ Example: Me lembre todo último dia útil do mês às 10h  →  title "Lembrete 
 Example: Me lembre toda primeira terça-feira de cada mês às 9h  →  title "Lembrete mensal"
 {"recurrence_type":"monthly_nth_weekday","recurrence_interval":1,"recurrence_weekday":2,"recurrence_nth":1,"max_occurrences":null,"end_date":null}
 
+NOTE: Sub-hour intervals (e.g. "a cada 15 minutos") are not supported by the current recurrence engine.
+The engine uses JavaScript's setHours(getHours() + interval), which truncates floats — so 0.25 would
+add 0 hours. Until the engine is updated to support minute-level precision, always use the nearest
+whole number of hours (minimum 1) for hourly recurrence_interval.
+
+Example: Me lembre de olhar o celular 5x a cada 15 minutos  →  title "Olhar o celular"
+{"recurrence_type":"hourly","recurrence_interval":1,"recurrence_weekday":null,"recurrence_nth":null,"max_occurrences":5,"end_date":null}
+
 Example: Me lembrar de tomar o remédio de quatro em quatro horas  →  title "Tomar remédio"
 {"recurrence_type":"hourly","recurrence_interval":4,"recurrence_weekday":null,"recurrence_nth":null,"max_occurrences":null,"end_date":"${date.split(" ")[0]} 23:59:59"}
 
-Example: Tomar remédio hoje de quatro em quatro horas  →  title "Tomar remédio"
-{"recurrence_type":"hourly","recurrence_interval":4,"recurrence_weekday":null,"recurrence_nth":null,"max_occurrences":null,"end_date":"${date.split(" ")[0]} 23:59:59"}
+Example: Tomar remédio de 4 em 4 horas durante 3 dias  →  title "Tomar remédio"
+{"recurrence_type":"hourly","recurrence_interval":4,"recurrence_weekday":null,"recurrence_nth":null,"max_occurrences":null,"end_date":"2026-03-18 08:00:00"}
 
 Example: Tomar remédio de hora em hora todo dia  →  title "Tomar remédio"
 {"recurrence_type":"hourly","recurrence_interval":1,"recurrence_weekday":null,"recurrence_nth":null,"max_occurrences":null,"end_date":null}
