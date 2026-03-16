@@ -10,7 +10,7 @@
 
 ---
 
-### Task 1: Update `PROMPT_EXTRACT_RECURRENCE`
+### Task 1: Update `PROMPT_EXTRACT_RECURRENCE` ✅
 
 **Files:**
 - Modify: `src/integrations/ai/gemini-constants.ts` — `PROMPT_EXTRACT_RECURRENCE` function (lines ~305–365)
@@ -61,16 +61,10 @@ Make the following edits inside `PROMPT_EXTRACT_RECURRENCE`:
 
 Re-read the whole prompt after edits. It should be noticeably shorter and have no duplicate rule blocks.
 
-**Step 4: Commit**
-
-```bash
-git add src/integrations/ai/gemini-constants.ts
-git commit -m "fix(prompt): cap hourly recurrence to end-of-day when no multi-day scope in PROMPT_EXTRACT_RECURRENCE"
-```
 
 ---
 
-### Task 2: Update `PROMPT_EXTRACT_REMINDER_DATA`
+### Task 2: Update `PROMPT_EXTRACT_REMINDER_DATA` ✅
 
 **Files:**
 - Modify: `src/integrations/ai/gemini-constants.ts` — `PROMPT_EXTRACT_REMINDER_DATA` function (lines ~37–234)
@@ -150,7 +144,7 @@ git commit -m "fix(prompt): cap hourly recurrence to end-of-day when no multi-da
 
 ---
 
-### Task 3: Manual smoke test
+### Task 3: Manual smoke test ✅
 
 No automated tests cover live AI prompt responses (the existing tests mock the AI). Verify manually by sending these messages via WhatsApp or the local dev environment:
 
@@ -161,5 +155,3 @@ No automated tests cover live AI prompt responses (the existing tests mock the A
 | "Tomar remédio de hora em hora todo dia" | null | hourly |
 | "Me lembre de tomar remédio a cada 8h durante 5 dias" | 5 days from first occurrence | hourly |
 | "Me lembre de comprar pão às 14h" | null | none |
-
-Confirm that the confirmation message sent back to the user shows the correct `end_date` (e.g. "até 15/03/2026") for day-scoped cases and no end date for eternal ones.
