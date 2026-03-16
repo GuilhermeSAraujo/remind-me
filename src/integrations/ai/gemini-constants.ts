@@ -75,18 +75,14 @@ For all other recurrence types (hourly, daily, weekly, monthly, yearly):
 For recurrence_type "monthly_nth_weekday":
 - Use when the user specifies a specific weekday + "de cada mês" / "todo mês"
 - Examples: "primeira terça-feira de cada mês", "última sexta do mês", "terceira quarta-feira"
-- Set recurrence_weekday to the weekday number (1=segunda, 2=terça, 3=quarta, 4=quinta, 5=sexta, 6=sábado, 0=domingo)
-- Set recurrence_nth to: 1 (primeira), 2 (segunda), 3 (terceira), 4 (quarta), 5 (quinta), -1 (última/último)
 - For "date": compute the next upcoming occurrence of that rule from the current date
 
 For recurrence_type "monthly_last_business_day":
 - Use when the user says "último dia útil do mês" or similar
-- Set recurrence_weekday to null, recurrence_nth to null
 - For "date": compute the last Monday–Friday of the current month (if it hasn't passed) or next month
 
 For recurrence_type "monthly_first_business_day":
 - Use when the user says "primeiro dia útil do mês" or similar
-- Set recurrence_weekday to null, recurrence_nth to null
 - For "date": compute the first Monday–Friday of the current month (if it hasn't passed) or next month
 
 For max_occurrences:
@@ -96,7 +92,12 @@ For max_occurrences:
 For end_date:
 - Set when the user specifies a duration or end date (e.g. "durante 5 dias", "até sexta-feira", "por 2 semanas")
 - Calculate end_date by adding the duration to the first occurrence date
-- Otherwise set to null
+- Otherwise set to null. (Exception: see HOURLY SCOPE RULE below.)
+
+HOURLY SCOPE RULE (overrides the end_date rule above for recurrence_type "hourly"):
+- No multi-day scope marker ("todo dia", "diariamente", "toda semana", "durante X dias", "por X dias"): set end_date to [first occurrence date] 23:59:59 (use the date portion from the computed first occurrence).
+- Explicit duration ("durante 5 dias"): compute end_date = first occurrence + duration (existing behaviour).
+- Eternal marker present ("todo dia", "diariamente"): leave end_date null.
 
 Example: Me lembre de comprar pão 14h
 [
@@ -200,6 +201,48 @@ Example: Me lembre de olhar o celular 5x a cada 15 minutos
         recurrence_weekday: null,
         recurrence_nth: null,
         max_occurrences: 5,
+        end_date: null
+    }
+]
+
+Example: Me lembrar de tomar o remédio de quatro em quatro horas (current date 2026-03-15)
+[
+    {
+        title: "Tomar remédio",
+        date: "2026-03-15 08:00:00",
+        recurrence_type: "hourly",
+        recurrence_interval: 4,
+        recurrence_weekday: null,
+        recurrence_nth: null,
+        max_occurrences: null,
+        end_date: "${currentDateTime.split(" ")[0]} 23:59:59"
+    }
+]
+
+Example: Tomar remédio de 4 em 4 horas durante 3 dias (current date 2026-03-15)
+[
+    {
+        title: "Tomar remédio",
+        date: "2026-03-15 08:00:00",
+        recurrence_type: "hourly",
+        recurrence_interval: 4,
+        recurrence_weekday: null,
+        recurrence_nth: null,
+        max_occurrences: null,
+        end_date: "2026-03-18 08:00:00"
+    }
+]
+
+Example: Tomar remédio de hora em hora todo dia (current date 2026-03-15)
+[
+    {
+        title: "Tomar remédio",
+        date: "2026-03-15 08:00:00",
+        recurrence_type: "hourly",
+        recurrence_interval: 1,
+        recurrence_weekday: null,
+        recurrence_nth: null,
+        max_occurrences: null,
         end_date: null
     }
 ]
