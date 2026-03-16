@@ -215,7 +215,7 @@ Example: Me lembrar de tomar o remédio de quatro em quatro horas (current date 
         recurrence_weekday: null,
         recurrence_nth: null,
         max_occurrences: null,
-        end_date: "${currentDateTime.split(" ")[0]} 23:59:59"
+        end_date: "2026-03-15 23:59:59"
     }
 ]
 
