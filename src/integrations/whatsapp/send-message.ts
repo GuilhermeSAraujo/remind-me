@@ -26,7 +26,7 @@ export async function sendMessage(
       isNewsletter,
     });
 
-    await fetch(endpoint, {
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         accept: "application/json",
@@ -39,6 +39,9 @@ export async function sendMessage(
       }),
     });
 
+    console.log("[SEND-MESSAGE] response payload", response)
+    const body = await response.json();
+    console.log("[SEND-MESSAGE] body json", body)
 
     return true;
   } catch (error) {
