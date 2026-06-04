@@ -1,8 +1,8 @@
 import { env } from "../../config/env";
 
 export const CONFIG = {
-    API_BASE_URL: env.WPPCONNECT_API_URL,
-    SESSION_NAME: "remind-me-auto",
+    API_BASE_URL: env.EVOLUTION_API_URL,
+    SESSION_NAME: "remind-bot",
 } as const;
 
 let SESSION_TOKEN = "";

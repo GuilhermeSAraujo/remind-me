@@ -5,21 +5,20 @@ import { Hono } from "hono";
 import { extractUserData, type UserData } from "./api/middlewares/user-extractor.middleware";
 import "./config/database";
 import { env } from "./config/env";
-import { startSession } from "./integrations/whatsapp/client";
+// import { startSession } from "./integrations/whatsapp/client";
 import { processMessage } from "./integrations/whatsapp/message-processor";
-import { reactMessage } from "./integrations/whatsapp/react-message";
-import { startTyping } from "./integrations/whatsapp/start-typing";
+// import { reactMessage } from "./integrations/whatsapp/react-message";
+// import { startTyping } from "./integrations/whatsapp/start-typing";
 import type { MessagePayload } from "./integrations/whatsapp/types";
 import "./jobs/premium-payment.watcher";
 import "./jobs/scheduler";
-import { setIdentificationType } from "./integrations/ai/gemini-client";
 
 type Variables = {
     messageBody: MessagePayload;
     userData?: UserData;
 };
 
-await startSession();
+// await startSession();
 
 const app = new Hono<{ Variables: Variables }>();
 
@@ -28,32 +27,11 @@ app.post("", extractUserData, async (c) => {
 
     const userData = c.get("userData");
 
-    if (body?.event !== "onmessage" || !userData) {
+    if (body?.event !== "messages.upsert" || !userData) {
         return c.json({}, 200);
     }
 
-    await reactMessage(userData.messageId, "⏳");
-
-    if (body.body.includes("setIdentification")) {
-        const identificationTypeFromMessage =
-            body.body.split(" ")?.[1] === "multi-prompt" ? "multi-prompt" : "single-prompt";
-
-        setIdentificationType(identificationTypeFromMessage);
-
-        console.log(`[SERVER] setIdentificationType to ${identificationTypeFromMessage}`)
-
-        return c.json({
-            success: true,
-            message: "Message received",
-            data: body,
-        });
-    }
-
-    await startTyping({ phone: userData.phoneNumber });
-
     await processMessage(body, userData);
-
-    await startTyping({ phone: userData.phoneNumber, value: false });
 
     return c.json({
         success: true,

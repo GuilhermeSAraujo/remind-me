@@ -24,15 +24,7 @@ function isTransientError(error: unknown): boolean {
   return typeof status === "number" && TRANSIENT_STATUS.has(status);
 }
 
-let identificationType: "single-prompt" | "multi-prompt" = "single-prompt"
-
-export function setIdentificationType (string : "single-prompt" | "multi-prompt"){
-  if(!["single-prompt", "multi-prompt"].includes(string)){
-    throw new Error('Invalid prompt identification type')
-  }
-  
-  identificationType = string;
-}
+let identificationType: "single-prompt" | "multi-prompt" = "multi-prompt"
 
 export function getIdentificationType(): "single-prompt" | "multi-prompt" {
   return identificationType;

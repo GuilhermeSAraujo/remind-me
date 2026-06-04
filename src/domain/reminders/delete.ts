@@ -1,7 +1,5 @@
 import { UserData } from "../../api/middlewares/user-extractor.middleware";
 import { sendMessage } from "../../integrations/whatsapp/send-message";
-import { sendImage } from "../../integrations/whatsapp/send-image";
-import { findReminderByMessageIdOrTextOrLastMessage } from "./find-reminder.helper";
 import { Reminder } from "./reminder.model";
 import { getRemindersInListOrder } from "./reminders-list-order.helper";
 
@@ -13,21 +11,20 @@ function extractNumberFromMessage(message: string): number | null {
     // Padrão para capturar números após palavras de deletar
     const pattern = /(?:apagar|apague|deletar|delete|remove|remova|exclui|excluir|cancela|cancele)\s+(\d+)/i;
     const match = message.match(pattern);
-    
+
     if (match && match[1]) {
         const number = parseInt(match[1], 10);
         return isNaN(number) ? null : number;
     }
-    
+
     return null;
 }
 
-export async function deleteReminder({ 
-    userData, 
-    quotedMsgId, 
-    messageText 
-}: { 
-    userData: UserData; 
+export async function deleteReminder({
+    userData,
+    messageText
+}: {
+    userData: UserData;
     quotedMsgId?: string;
     messageText?: string;
 }) {
@@ -36,10 +33,10 @@ export async function deleteReminder({
     // Tentar encontrar pelo número da lista se messageText contiver um número
     if (messageText) {
         const listNumber = extractNumberFromMessage(messageText);
-        
+
         if (listNumber !== null) {
             const reminders = await getRemindersInListOrder(userData.phoneNumber);
-            
+
             // Validar se o número está no range válido (1 até quantidade de lembretes)
             if (listNumber >= 1 && listNumber <= reminders.length) {
                 // Usar índice baseado em 1 (listNumber - 1 para array baseado em 0)
@@ -54,13 +51,12 @@ export async function deleteReminder({
         }
     }
 
-    // Fallback: usar método original se não encontrou por número ou não havia número
-    if (!reminder) {
-        reminder = await findReminderByMessageIdOrTextOrLastMessage(userData.phoneNumber, quotedMsgId);
-    }
 
     if (!reminder) {
-        await reminderNotFoundMessage({ userData });
+        await sendMessage({
+            phone: userData.phoneNumber,
+            message: `Não foi possível identificar o lembrete a ser deletado. Envie 'Listar' para identificar qual lembrete deve ser removido.`,
+        });
         return;
     }
 
@@ -70,16 +66,4 @@ export async function deleteReminder({
         phone: userData.phoneNumber,
         message: `Lembrete "${reminder?.title}" apagado com sucesso.`,
     });
-}
-
-
-async function reminderNotFoundMessage({ userData }: { userData: UserData }) {
-    await sendImage(
-        {
-            phone: userData.phoneNumber,
-            filename: "delete-reminder.jpeg",
-            caption: "Não foi possível encontrar o lembrete para ser excluído. \nAcima temos um exemplo de como apagar um lembrete.",
-        },
-        "delete-reminder.jpeg"
-    );
 }

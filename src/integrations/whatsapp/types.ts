@@ -4,17 +4,27 @@ export interface MessageSender {
 }
 
 export interface MessagePayload {
-  event: "onmessage" | "qrcode" | "qrReadSuccess";
-  id: string;
-  sender: MessageSender;
-  body: string;
-  from: string;
-  urlcode?: string;
-  quotedMsgId?: string;
-  // Campos adicionais do WPPConnect para contatos não salvos
-  notifyName?: string; // Nome do perfil do WhatsApp do remetente
-  pushname?: string; // Push name alternativo
-  isGroupMsg?: boolean;
+  event: "messages.upsert";
+  data: {
+    key: {
+      // user "id" from whatsapp
+      remoteJid: string;
+      fromMe: boolean;
+      // message id
+      id: string
+    },
+    pushName: string;
+    status: string;
+    message: {
+      conversation: string;
+    }
+    messageType: 'conversation' | 'reactionMessage';
+    contextInfo: {
+      // answered message id
+      stanzaId: string;
+      quotedMessage: unknown;
+    }
+  }
 }
 
 export interface ApiResponse {

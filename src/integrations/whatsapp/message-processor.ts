@@ -1,5 +1,4 @@
 import { deleteReminder } from "../../domain/reminders/delete";
-import { delayReminder } from "../../domain/reminders/delay";
 import { listReminders } from "../../domain/reminders/list";
 import { Reminder } from "../../domain/reminders/reminder.model";
 import { scheduleReminder } from "../../domain/reminders/schedule";
@@ -10,17 +9,15 @@ import { PROMPT_CLASSIFY_MESSAGE_INTENT } from "../ai/gemini-constants";
 import { BUY_PREMIUM_MESSAGE, FREE_USER_REMINDER_LIMIT_MESSAGE, HELP_MESSAGES, RATE_LIMIT_EXCEEDED_MESSAGE } from "./constants";
 import { detectMessageIntent, type MessageIntent } from "./intent-detector";
 import { enqueueReminder } from "./reminder-queue";
-import { reactMessage } from "./react-message";
+// // import { reactMessage } from "./react-message";
 import { sendMessage } from "./send-message";
 import { sendMessages } from "./send-messages";
 import type { MessagePayload, UserData } from "./types";
 
 export async function processMessage(body: MessagePayload, userData: UserData) {
-    const message = body.body?.trim();
-
+    const message = body.data?.message.conversation.trim();
     if (message.length > 250) {
         console.log("[PROCESSOR] ⚠ Message too long:", message.length);
-        await reactMessage(userData.messageId, "🚫");
         await sendMessage({
             phone: userData.phoneNumber,
             message: "Infelizmente, não é possível enviar mensagens muito longas. Por favor, envie uma mensagem mais curta.",
@@ -47,7 +44,6 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
 
             if (!rateLimitCheck.allowed) {
                 const resetInHours = rateLimitCheck.resetIn / (1000 * 60 * 60);
-                await reactMessage(userData.messageId, "🚫");
                 await sendMessage({
                     phone: userData.phoneNumber,
                     message: RATE_LIMIT_EXCEEDED_MESSAGE(resetInHours, userData.phoneNumber),
@@ -57,7 +53,7 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
 
             messageIntent = await generateContentWithContext(
                 userData.phoneNumber,
-                PROMPT_CLASSIFY_MESSAGE_INTENT(body.body),
+                PROMPT_CLASSIFY_MESSAGE_INTENT(message),
                 'classify'
             ) as MessageIntent;
         }
@@ -74,7 +70,6 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                     });
 
                     if (pendingRemindersCount >= 5) {
-                        await reactMessage(userData.messageId, "😢");
                         await sendMessage({
                             phone: userData.phoneNumber,
                             message: FREE_USER_REMINDER_LIMIT_MESSAGE(userData.phoneNumber),
@@ -88,7 +83,6 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
 
                 if (!rateLimitCheck.allowed) {
                     const resetInHours = rateLimitCheck.resetIn / (1000 * 60 * 60);
-                    await reactMessage(userData.messageId, "🚫");
                     await sendMessage({
                         phone: userData.phoneNumber,
                         message: RATE_LIMIT_EXCEEDED_MESSAGE(resetInHours, userData.phoneNumber),
@@ -99,30 +93,22 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                 enqueueReminder(() =>
                     scheduleReminder({
                         userData,
-                        message: body.body,
-                        messageId: body.id,
+                        message: message,
+                        messageId: body.data.key.id,
                     })
                 );
 
                 break;
 
             case "list_reminders":
-                await reactMessage(userData.messageId, "📋");
                 await listReminders({ userData });
                 break;
 
             case "delete_reminder":
-                await reactMessage(userData.messageId, "🗑️");
-                await deleteReminder({ userData, quotedMsgId: body.quotedMsgId, messageText: body.body });
-                break;
-
-            case "delay_reminder":
-                await reactMessage(userData.messageId, "✅");
-                await delayReminder({ userMessage: body.body, userData, quotedMsgId: body.quotedMsgId });
+                await deleteReminder({ userData, quotedMsgId: body.data.contextInfo.stanzaId, messageText: message });
                 break;
 
             case "buy_premium":
-                await reactMessage(userData.messageId, "⭐");
                 await sendMessage({
                     phone: userData.phoneNumber,
                     message: BUY_PREMIUM_MESSAGE(userData.phoneNumber),
@@ -130,7 +116,6 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                 break;
 
             case "thank":
-                await reactMessage(userData.messageId, "😊");
                 await sendMessage({
                     phone: userData.phoneNumber,
                     message: "De nada! Estou aqui para ajudar. Se precisar de algo, é só falar!",
@@ -139,7 +124,6 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
 
             case "help":
             default:
-                await reactMessage(userData.messageId, "ℹ️");
                 await sendMessages({
                     phone: userData.phoneNumber,
                     messages: HELP_MESSAGES,

@@ -1,30 +1,16 @@
-version: "3"
-
 services:
-  remind-bot-wppconnect:
-    image: remind-bot-wppconnect:latest
-    restart: unless-stopped
-    entrypoint: >
-      sh -c "find /usr/src/wpp-server/userDataDir -name 'SingletonLock' -delete 2>/dev/null;
-             find /usr/src/wpp-server/userDataDir -name 'SingletonCookie' -delete 2>/dev/null;
-             find /usr/src/wpp-server/userDataDir -name 'SingletonSocket' -delete 2>/dev/null;
-             exec node /usr/src/wpp-server/dist/server.js"
-    volumes:
-      - wpp_userdata:/usr/src/wpp-server/userDataDir
-    networks:
-      - remind-bot-network
-
   remind-bot:
-    image: remind-bot:latest
+    container_name: remind-bot
+    build: .
     restart: unless-stopped
     networks:
-      - remind-bot-network
+      - evolution-network
+    environment:
+      EVOLUTION_API_URL: http://evolution-api:3333
     env_file:
       - .env
 
 networks:
-  remind-bot-network:
-    driver: bridge
-
-volumes:
-  wpp_userdata: {}
+  evolution-network:
+    external: true
+    name: evolution_evolution-network

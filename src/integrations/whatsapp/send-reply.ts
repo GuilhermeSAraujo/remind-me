@@ -1,6 +1,6 @@
+
 import { env } from '../../config/env';
-import { CONFIG, getSessionToken } from './client';
-import { resolvePhoneNumber } from './resolve-phone';
+import { CONFIG } from './client';
 
 export interface SendReplyOptions {
   phone: string;
@@ -10,25 +10,24 @@ export interface SendReplyOptions {
 }
 
 export async function sendReply(options: SendReplyOptions): Promise<boolean> {
-  const phone = env.LOCAL_TEST_MODE
-    ? env.LOCAL_TEST_GROUP_ID!
-    : await resolvePhoneNumber(options.phone);
-
   try {
-    const response = await fetch(
-      `${CONFIG.API_BASE_URL}/api/${CONFIG.SESSION_NAME}/send-reply`,
+    const endpoint = `${CONFIG.API_BASE_URL}/message/sendText/${CONFIG.SESSION_NAME}`;
+    const response = await fetch(endpoint,
       {
         method: 'POST',
         headers: {
-          accept: '*/*',
-          Authorization: `Bearer ${await getSessionToken()}`,
-          'Content-Type': 'application/json',
+          accept: "application/json",
+          "Content-Type": "application/json",
+          apikey: env.AUTHENTICATION_API_KEY,
         },
         body: JSON.stringify({
-          phone,
-          isGroup: !!env.LOCAL_TEST_MODE,
-          message: options.message,
-          messageId: options.messageId,
+          number: options.phone,
+          text: options.message,
+          quoted: {
+            key: {
+              id: options.messageId
+            }
+          }
         }),
       }
     );

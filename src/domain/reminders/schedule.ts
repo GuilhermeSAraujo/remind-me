@@ -17,7 +17,7 @@ import { sendReply } from "../../integrations/whatsapp/send-reply";
 const MESSAGE_AI_TEMPORARY_ERROR =
     "Ocorreu um erro temporário. Seu lembrete será processado assim que a IA voltar.";
 import { calculateNextScheduledTime } from "./recurrence.utils";
-import { reactMessage } from "../../integrations/whatsapp/react-message";
+// import { reactMessage } from "../../integrations/whatsapp/react-message";
 
 export async function scheduleReminder({
     userData,
@@ -67,7 +67,7 @@ export async function scheduleReminder({
             sentCount: 0,
         });
 
-        await reactMessage(messageId, "✅");
+        // await reactMessage(messageId, "✅");
     }
 
     // Formatar mensagem de sucesso
@@ -76,6 +76,7 @@ export async function scheduleReminder({
             ? formatReminderCreatedMessage(remindersData[0]!)
             : formatMultipleRemindersCreatedMessage(remindersData);
 
+            // continuar daqui!!!
     await sendReply({
         phone: userData.phoneNumber,
         messageId: userData.messageId,

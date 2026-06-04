@@ -1,6 +1,6 @@
 import { env } from "../../config/env";
-import { CONFIG, getSessionToken } from "./client";
-import { resolvePhoneNumber } from "./resolve-phone";
+import { CONFIG } from "./client";
+// import { resolvePhoneNumber } from "./resolve-phone";
 
 export interface SendMessageOptions {
   phone: string;
@@ -9,41 +9,44 @@ export interface SendMessageOptions {
   isNewsletter?: boolean;
 }
 
-export async function sendMessage(options: SendMessageOptions): Promise<boolean> {
+export async function sendMessage(
+  options: SendMessageOptions,
+): Promise<boolean> {
   const { message, isGroup = false, isNewsletter = false } = options;
-  const phone = await resolvePhoneNumber(options.phone);
 
   try {
-    const response = await fetch(`${CONFIG.API_BASE_URL}/api/${CONFIG.SESSION_NAME}/send-message`, {
+    // Evolution API endpoint for sending text messages
+    const endpoint = `${CONFIG.API_BASE_URL}/message/sendText/${CONFIG.SESSION_NAME}`;
+
+    console.log("[SEND MESSAGE] Sending to:", {
+      phone: options.phone,
+      endpoint,
+      message: message.substring(0, 50) + "...",
+      isGroup,
+      isNewsletter,
+    });
+
+    await fetch(endpoint, {
       method: "POST",
       headers: {
-        accept: "*/*",
-        Authorization: `Bearer ${await getSessionToken()}`,
+        accept: "application/json",
         "Content-Type": "application/json",
+        apikey: env.AUTHENTICATION_API_KEY,
       },
       body: JSON.stringify({
-        phone: env.LOCAL_TEST_MODE ? env.LOCAL_TEST_GROUP_ID : phone,
-        isGroup: !!env.LOCAL_TEST_MODE,
-        isNewsletter,
-        isLid: false,
-        message,
+        number: options.phone,
+        text: message,
       }),
     });
 
-    if (!response.ok) {
-      const text = await response.text();
-      console.error("[SEND MESSAGE] 🚨 API ERROR:", response.status, text, {
-        phone,
-        isGroup,
-        isNewsletter,
-        message,
-      });
-      return false;
-    }
 
     return true;
   } catch (error) {
-    console.error("[SEND MESSAGE] 🚨 Unexpected ERROR:", error);
+    console.error("[SEND MESSAGE] 🚨 Unexpected ERROR:", {
+      error: error instanceof Error ? error.message : String(error),
+      phone: options.phone,
+      message: options.message.substring(0, 50) + "...",
+    });
     return false;
   }
 }
