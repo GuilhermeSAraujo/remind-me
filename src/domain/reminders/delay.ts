@@ -17,10 +17,10 @@ async function extractDelayFromMessage(userId: string, messageText: string): Pro
 
 export async function delayReminder({ userData, quotedMsgId, messageText }: { userData: UserData; quotedMsgId: string; messageText: string }) {
     // find message
-    const message = await getMessageById(quotedMsgId);
+    const message = null// await getMessageById(quotedMsgId);
     console.log("[DELAY REMINDER] Message found:", message);
     if (!message) {
-        await sendMessage({ phone: userData.phoneNumber, message: "Mensagem não encontrada" });
+        await sendMessage({ phone: userData.phoneNumber, message: "Delay temporariamente desligado" });
         return;
     }
 
