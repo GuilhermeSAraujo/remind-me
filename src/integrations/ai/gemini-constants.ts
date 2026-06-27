@@ -416,11 +416,11 @@ Example: Tomar remédio de hora em hora todo dia  →  title "Tomar remédio"
 {"recurrence_type":"hourly","recurrence_interval":1,"recurrence_weekday":null,"recurrence_nth":null,"max_occurrences":null,"end_date":null}
 `;
 
-export const PROMPT_IDENTIFY_DELAY = (message: string, currentScheduledTime: string) => `
+export const PROMPT_IDENTIFY_DELAY = (message: string) => `
   Task: update a reminder time by applying a delay.
   
   Message: "${message}"
-  Current scheduled date time: ${currentScheduledTime}
+  Current scheduled date time: ${new Date().toISOString()}
   
   Rules:
   - The message expresses a delay (minutes, hours, days, or relative terms like "amanhã", "próxima semana").

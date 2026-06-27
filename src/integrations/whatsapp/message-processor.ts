@@ -2,6 +2,7 @@ import { deleteReminder } from "../../domain/reminders/delete";
 import { listReminders } from "../../domain/reminders/list";
 import { Reminder } from "../../domain/reminders/reminder.model";
 import { scheduleReminder } from "../../domain/reminders/schedule";
+import { delayReminder } from "../../domain/reminders/delay";
 import { User } from "../../domain/users/user.model";
 import { checkRateLimit } from "../../services/rate-limiter.service";
 import { clearChatSession, generateContentWithContext } from "../ai/gemini-client";
@@ -107,6 +108,10 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
 
             case "delete_reminder":
                 await deleteReminder({ userData, quotedMsgId: body.data.contextInfo.stanzaId, messageText: message });
+                break;
+
+            case "delay_reminder":
+                await delayReminder({ userData, quotedMsgId: body.data.contextInfo.stanzaId, messageText: message });
                 break;
 
             case "buy_premium":
