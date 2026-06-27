@@ -1,6 +1,7 @@
 services:
   remind-bot:
     container_name: remind-bot
+    image: remind-bot:latest
     build: .
     restart: unless-stopped
     networks:
