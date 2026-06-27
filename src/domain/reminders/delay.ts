@@ -16,7 +16,7 @@ async function extractDelayFromMessage(userId: string, messageText: string): Pro
 
 export async function delayReminder({ userData, quotedMsgId, messageText }: { userData: UserData; quotedMsgId: string; messageText: string }) {
     const reminder = await Reminder.findOne({ userPhoneNumber: userData.phoneNumber, messageId: quotedMsgId });
-
+    console.log("[DELAY REMINDER] Searching for reminder:", { userPhoneNumber: userData.phoneNumber, messageId: quotedMsgId }, reminder);
     if (!reminder) {
         await sendMessage({ phone: userData.phoneNumber, message: "Lembrete não encontrado" });
         return;

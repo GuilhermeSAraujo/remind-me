@@ -1,6 +1,5 @@
 import { env } from "../../config/env";
 import { CONFIG } from "./client";
-// import { resolvePhoneNumber } from "./resolve-phone";
 
 export interface SendMessageOptions {
   phone: string;
@@ -12,19 +11,12 @@ export interface SendMessageOptions {
 export async function sendMessage(
   options: SendMessageOptions,
 ): Promise<boolean> {
-  const { message, isGroup = false, isNewsletter = false } = options;
+  const { message } = options;
 
   try {
     // Evolution API endpoint for sending text messages
     const endpoint = `${CONFIG.API_BASE_URL}/message/sendText/${CONFIG.SESSION_NAME}`;
 
-    console.log("[SEND MESSAGE] Sending to:", {
-      phone: options.phone,
-      endpoint,
-      message: message.substring(0, 50) + "...",
-      isGroup,
-      isNewsletter,
-    });
 
     const response = await fetch(endpoint, {
       method: "POST",
@@ -39,9 +31,7 @@ export async function sendMessage(
       }),
     });
 
-    console.log("[SEND-MESSAGE] response payload", response)
-    const body = await response.json();
-    console.log("[SEND-MESSAGE] body json", body)
+    await response.json();
 
     return true;
   } catch (error) {
