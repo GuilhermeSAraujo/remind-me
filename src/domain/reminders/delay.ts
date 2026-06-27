@@ -1,5 +1,6 @@
 import { generateContentWithContext } from "../../integrations/ai/gemini-client";
 import { PROMPT_IDENTIFY_DELAY } from "../../integrations/ai/gemini-constants";
+import { getMessageById } from "../../integrations/whatsapp/get-message-by-id";
 import { sendMessage } from "../../integrations/whatsapp/send-message";
 import { UserData } from "../../integrations/whatsapp/types";
 import { Reminder } from "./reminder.model";
@@ -15,6 +16,14 @@ async function extractDelayFromMessage(userId: string, messageText: string): Pro
 }
 
 export async function delayReminder({ userData, quotedMsgId, messageText }: { userData: UserData; quotedMsgId: string; messageText: string }) {
+    // find message
+    const message = await getMessageById(quotedMsgId);
+    console.log("[DELAY REMINDER] Message found:", message);
+    if (!message) {
+        await sendMessage({ phone: userData.phoneNumber, message: "Mensagem não encontrada" });
+        return;
+    }
+
     const reminder = await Reminder.findOne({ userPhoneNumber: userData.phoneNumber, messageId: quotedMsgId });
     console.log("[DELAY REMINDER] Searching for reminder:", { userPhoneNumber: userData.phoneNumber, messageId: quotedMsgId }, reminder);
     if (!reminder) {
