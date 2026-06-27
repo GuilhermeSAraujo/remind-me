@@ -1,6 +1,6 @@
 import { generateContentWithContext } from "../../integrations/ai/gemini-client";
 import { PROMPT_IDENTIFY_DELAY } from "../../integrations/ai/gemini-constants";
-import { getMessageById } from "../../integrations/whatsapp/get-message-by-id";
+// import { getMessageById } from "../../integrations/whatsapp/get-message-by-id";
 import { sendMessage } from "../../integrations/whatsapp/send-message";
 import { UserData } from "../../integrations/whatsapp/types";
 import { Reminder } from "./reminder.model";
