@@ -27,6 +27,7 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
 
     // Detect message intent using pattern matching (No AI)
     let messageIntent = detectMessageIntent(message);
+    console.log("[PROCESSOR] ⚠ Message intent:", messageIntent);
 
     const shortMessage = message.length <= 3;
     if (shortMessage) {

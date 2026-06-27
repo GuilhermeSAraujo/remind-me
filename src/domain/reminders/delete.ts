@@ -59,7 +59,7 @@ export async function deleteReminder({
         });
         return;
     }
-
+    console.log("[DELETE REMINDER] ⚠ Reminder found?:", reminder);
     await Reminder.deleteOne({ _id: reminder._id, userPhoneNumber: userData.phoneNumber });
 
     await sendMessage({
