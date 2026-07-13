@@ -14,7 +14,7 @@ const RATE_LIMITS = {
     FREE_REQUESTS_PER_24H: 5,
 
     // Maximum tokens in 24h for free tier
-    MAX_TOKENS_FREE_24H: 2500, // Roughly ~5-10 requests
+    MAX_TOKENS_FREE_24H: 10_000, // Roughly ~5-10 requests
 
     // Sliding window
     WINDOW_HOURS: 24,
