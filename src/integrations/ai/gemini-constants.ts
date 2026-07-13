@@ -16,6 +16,8 @@ Respond with ONLY one of these exact words: reminder, list_reminders, delete_rem
 Examples:
 "Me lembre de comprar pão às 14h" -> reminder
 "Lembrete para tomar água amanhã" -> reminder
+"Ligar para o Pedro amanhã às 10h" -> reminder
+"Cobrar a Maria amanhã às 09:00" -> reminder
 "Quais são meus lembretes?" -> list_reminders
 "Lista meus lembretes" -> list_reminders
 "Mostrar lembretes" -> list_reminders
