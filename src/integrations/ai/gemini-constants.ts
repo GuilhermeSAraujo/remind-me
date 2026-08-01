@@ -423,27 +423,31 @@ Example: Tomar remédio de hora em hora todo dia  →  title "Tomar remédio"
 {"recurrence_type":"hourly","recurrence_interval":1,"recurrence_weekday":null,"recurrence_nth":null,"max_occurrences":null,"end_date":null}
 `;
 
-export const PROMPT_IDENTIFY_DELAY = (message: string) => `
-  Task: update a reminder time by applying a delay.
-  
+export const PROMPT_IDENTIFY_DELAY = (message: string, currentDateTime: string) => `
+  Task: compute a new reminder time by applying a delay from NOW.
+
   Message: "${message}"
-  Current scheduled date time: ${new Date().toISOString()}
-  
+  Current date time (America/Sao_Paulo): ${currentDateTime}
+
   Rules:
-  - The message expresses a delay (minutes, hours, days, or relative terms like "amanhã", "próxima semana").
-  - Calculate the new time based on the current SCHEDULED DATE TIME.
-  - Keep the same hour/minute unless the message specifies otherwise.
+  - The message expresses a delay with an amount and unit (minutes, hours, days).
+  - Calculate the new time based on the CURRENT date time above (not any previous reminder time).
+  - Add the requested delay to the current date time.
   - Use format: YYYY-MM-DD HH:mm:ss
-  
+
   Output ONLY this JSON (no extra text):
   {"newScheduledTime":"YYYY-MM-DD HH:mm:ss"}
 
   Example: Adiar 30 minutos
-  Current scheduled date time: 2026-01-20 14:00:00
+  Current date time: 2026-01-20 14:00:00
   Output: {"newScheduledTime":"2026-01-20 14:30:00"}
 
+  Example: Adiar 2 horas
+  Current date time: 2026-01-20 14:00:00
+  Output: {"newScheduledTime":"2026-01-20 16:00:00"}
+
   Example: Adiar 2 dias
-  Current scheduled date time: 2026-01-20 14:00:00
+  Current date time: 2026-01-20 14:00:00
   Output: {"newScheduledTime":"2026-01-22 14:00:00"}
   `;
 

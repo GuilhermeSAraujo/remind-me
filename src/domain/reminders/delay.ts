@@ -6,6 +6,11 @@ import {
 } from "../../integrations/whatsapp/find-messages";
 import { sendMessage } from "../../integrations/whatsapp/send-message";
 import { UserData } from "../../integrations/whatsapp/types";
+import {
+    formatFriendlyDateTime,
+    parseBrazilDateString,
+    toBrazilDateTimeString,
+} from "../../shared/utils/date.utils";
 import { stripReminderPrefix } from "../../shared/utils/reminder-prefix.utils";
 import { Reminder } from "./reminder.model";
 
@@ -16,7 +21,7 @@ async function extractDelayFromMessage(
     try {
         let delay = await generateContentWithContext(
             userId,
-            PROMPT_IDENTIFY_DELAY(messageText),
+            PROMPT_IDENTIFY_DELAY(messageText, toBrazilDateTimeString(new Date())),
             "identify_delay",
         );
         delay = delay.replace(/```json/g, "").replace(/```/g, "");
@@ -82,12 +87,13 @@ export async function delayReminder({
         return;
     }
 
-    reminder.scheduledTime = new Date(newScheduledTime);
+    const scheduledDate = parseBrazilDateString(newScheduledTime);
+    reminder.scheduledTime = scheduledDate;
     reminder.status = "pending";
     await reminder.save();
 
     await sendMessage({
         phone: userData.phoneNumber,
-        message: `Lembrete adiado com sucesso para ${newScheduledTime}`,
+        message: `Lembrete adiado com sucesso para ${formatFriendlyDateTime(scheduledDate)}`,
     });
 }
