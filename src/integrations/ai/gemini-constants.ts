@@ -25,9 +25,14 @@ Examples:
 "Apagar lembrete" -> delete_reminder
 "Deletar lembrete de comprar pão" -> delete_reminder
 "Remover lembrete" -> delete_reminder
-"Atrasar lembrete de comprar pão" -> delay_reminder
-"Adiar lembrete de comprar pão" -> delay_reminder
-"Adiar lembrete de comprar pão para amanhã" -> delay_reminder
+"Adiar 30 minutos" -> delay_reminder
+"Atrasar 2 horas" -> delay_reminder
+"delay de 15 minutos" -> delay_reminder
+"Adiar 1 dia" -> delay_reminder
+"1" -> help
+"30" -> help
+"amanhã" -> help
+"Adiar" -> help
 "Quero assinar o premium" -> buy_premium
 "Quanto custa o plano pago?" -> buy_premium
 "Quero comprar o premium" -> buy_premium

@@ -19,7 +19,7 @@ export interface MessagePayload {
       conversation: string;
     }
     messageType: 'conversation' | 'reactionMessage';
-    contextInfo: {
+    contextInfo?: {
       // answered message id
       stanzaId: string;
       quotedMessage: unknown;

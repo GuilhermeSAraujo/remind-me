@@ -13,6 +13,10 @@ interface IntentPattern {
     priority: number;
 }
 
+/** Requires an explicit delay verb + amount + unit (e.g. "adiar 30 minutos", "delay de 2 horas"). */
+export const DELAY_REMINDER_PATTERN =
+    /(?:adiar|atrasar|adia|delay(?:\s+de)?)\s+\d+\s*(?:minutos?|horas?|dias?|tempo)\b/i;
+
 export const INTENT_PATTERNS: IntentPattern[] = [
     {
         intent: 'list_reminders',
@@ -23,11 +27,6 @@ export const INTENT_PATTERNS: IntentPattern[] = [
         intent: 'delete_reminder',
         pattern: /apaga|apague|apagar|deleta|delete|deletar|remove|remova|remover|exclui|excluir|cancela|cancele|cancelar/,
         priority: 2
-    },
-    {
-        intent: 'delay_reminder',
-        pattern: /adiar|atrasar|adia/,
-        priority: 3
     },
     {
         intent: 'reminder',
@@ -52,17 +51,20 @@ export const INTENT_PATTERNS: IntentPattern[] = [
 ];
 
 export function detectMessageIntent(message: string): MessageIntent | null {
-    const firstThreeWords = message
-        .split(" ")
-        .slice(0, 3)
-        .join(" ")
-        .toLowerCase();
+    const normalized = message.toLowerCase().trim();
 
-    // Find the first matching pattern
+    if (DELAY_REMINDER_PATTERN.test(normalized)) {
+        return 'delay_reminder';
+    }
+
+    const firstThreeWords = normalized
+        .split(/\s+/)
+        .slice(0, 3)
+        .join(" ");
+
     const matchedIntent = INTENT_PATTERNS.find(({ pattern }) =>
         pattern.test(firstThreeWords)
     );
 
     return matchedIntent?.intent ?? null;
 }
-

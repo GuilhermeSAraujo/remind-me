@@ -8,7 +8,7 @@ import { checkRateLimit } from "../../services/rate-limiter.service";
 import { clearChatSession, generateContentWithContext } from "../ai/gemini-client";
 import { PROMPT_CLASSIFY_MESSAGE_INTENT } from "../ai/gemini-constants";
 import { BUY_PREMIUM_MESSAGE, FREE_USER_REMINDER_LIMIT_MESSAGE, HELP_MESSAGES, RATE_LIMIT_EXCEEDED_MESSAGE } from "./constants";
-import { detectMessageIntent, type MessageIntent } from "./intent-detector";
+import { detectMessageIntent, type MessageIntent } from "../../domain/reminders/intent";
 import { enqueueReminder } from "./reminder-queue";
 // // import { reactMessage } from "./react-message";
 import { sendMessage } from "./send-message";
@@ -31,7 +31,7 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
     console.log("[PROCESSOR] ⚠ Message intent:", messageIntent);
 
     const shortMessage = message.length <= 3;
-    if (shortMessage) {
+    if (shortMessage && !messageIntent) {
         messageIntent = "help";
     }
 
@@ -107,11 +107,15 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                 break;
 
             case "delete_reminder":
-                await deleteReminder({ userData, quotedMsgId: body.data.contextInfo.stanzaId, messageText: message });
+                await deleteReminder({ userData, quotedMsgId: body.data.contextInfo?.stanzaId, messageText: message });
                 break;
 
             case "delay_reminder":
-                await delayReminder({ userData, quotedMsgId: body.data.contextInfo.stanzaId, messageText: message });
+                await delayReminder({
+                    userData,
+                    quotedMsgId: body.data.contextInfo?.stanzaId,
+                    messageText: message,
+                });
                 break;
 
             case "buy_premium":
