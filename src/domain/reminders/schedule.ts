@@ -11,6 +11,7 @@ import {
     getBrazilWeekday,
     parseBrazilDateString,
     toBrazilDateTimeString,
+    truncateToMinute,
 } from "../../shared/utils/date.utils";
 import { sendReply } from "../../integrations/whatsapp/send-reply";
 
@@ -51,6 +52,8 @@ export async function scheduleReminder({
                 { weekday: reminderData.recurrence_weekday, nth: reminderData.recurrence_nth },
             );
         }
+
+        scheduledTime = truncateToMinute(scheduledTime);
 
         await Reminder.create({
             messageId: messageId,

@@ -4,6 +4,13 @@ export function parseBrazilDateString(dateStr: string): Date {
     return new Date(dateStr.replace(" ", "T"));
 }
 
+/** Floors a date to minute precision (seconds and ms → 0). */
+export function truncateToMinute(date: Date): Date {
+    const truncated = new Date(date);
+    truncated.setUTCSeconds(0, 0);
+    return truncated;
+}
+
 export function toBrazilDateTimeString(date: Date): string {
     return date.toLocaleString("sv-SE", { timeZone: BRAZIL_TZ });
 }

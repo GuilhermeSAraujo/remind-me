@@ -10,6 +10,7 @@ import {
     formatFriendlyDateTime,
     parseBrazilDateString,
     toBrazilDateTimeString,
+    truncateToMinute,
 } from "../../shared/utils/date.utils";
 import { stripReminderPrefix } from "../../shared/utils/reminder-prefix.utils";
 import { Reminder } from "./reminder.model";
@@ -81,7 +82,7 @@ export async function delayReminder({
         return;
     }
 
-    const scheduledDate = parseBrazilDateString(newScheduledTime);
+    const scheduledDate = truncateToMinute(parseBrazilDateString(newScheduledTime));
     reminder.scheduledTime = scheduledDate;
     reminder.status = "pending";
     await reminder.save();
