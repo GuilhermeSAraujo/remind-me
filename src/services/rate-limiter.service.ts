@@ -3,9 +3,9 @@ import { AIOperationType } from "../shared/types/ai.types";
 
 // Token estimates per operation type
 const TOKENS_PER_OPERATION: Record<AIOperationType, number> = {
-    classify: 100, // ~50-150 tokens
-    extract: 300, // ~200-400 tokens
-    identify_delay: 50, // ~50 tokens
+    classify: 2800, // ~50-150 tokens
+    extract: 1500, // ~200-400 tokens
+    identify_delay: 315, // ~50 tokens
 };
 
 // Rate limit configuration
@@ -14,7 +14,7 @@ const RATE_LIMITS = {
     FREE_REQUESTS_PER_24H: 5,
 
     // Maximum tokens in 24h for free tier
-    MAX_TOKENS_FREE_24H: 10_000, // Roughly ~5-10 requests
+    MAX_TOKENS_FREE_24H: 20_000, // Roughly ~5-10 requests
 
     // Sliding window
     WINDOW_HOURS: 24,
