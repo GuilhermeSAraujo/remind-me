@@ -22,8 +22,8 @@ export async function reactMessage(
         apikey: env.AUTHENTICATION_API_KEY,
       },
       body: JSON.stringify({
-        reactionKey,
-        reactionMessage,
+        key: reactionKey,
+        reaction: reactionMessage,
       }),
     });
 
