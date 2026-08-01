@@ -45,10 +45,24 @@ export const PROMPT_EXTRACT_REMINDER_DATA = (
     message: string,
     currentDateTime: string,
     weekday: string,
+    weekdayLookup: string,
+    weekdayExample: string,
 ) => `
 You are given a message from a user and you need to EXTRACT the reminder data from the message.
 The user message is: ${message}
 Current date and time is: ${currentDateTime}. The weekday is ${weekday}.
+
+${weekdayLookup}
+
+WEEKDAY RULES (for phrases like "próxima quinta", "esta sexta", "na terça"):
+- Prefer the WEEKDAY DATE LOOKUP above over mental arithmetic or dates in other examples.
+- "próxima X" / "X que vem" → use LOOKUP "próxima" for X.
+- "esta X" / "nessa X" / bare "na X-feira" → use LOOKUP "esta" for X.
+- Time of day still comes from the message (e.g. "18h" → 18:00:00); only the calendar date comes from the LOOKUP.
+- If today is the named weekday and the requested time has already passed for bare/"esta", use LOOKUP "próxima" (+7).
+- Ignore dates inside other examples when resolving weekday phrases — use only the LOOKUP.
+
+${weekdayExample}
 
 Extract ALL reminders from the message. If there's only one reminder, return an array with one element.
 Respond ONLY with a valid JSON ARRAY in PLAINTEXT format with the following structure:
@@ -287,10 +301,24 @@ export const PROMPT_EXTRACT_REMINDER_BASE = (
     message: string,
     currentDateTime: string,
     weekday: string,
+    weekdayLookup: string,
+    weekdayExample: string,
 ) => `
 You are given a message from a user and you need to extract reminders from it.
 The user message is: ${message}
 Current date and time is: ${currentDateTime}. The weekday is ${weekday}.
+
+${weekdayLookup}
+
+WEEKDAY RULES (for phrases like "próxima quinta", "esta sexta", "na terça"):
+- Prefer the WEEKDAY DATE LOOKUP above over mental arithmetic or dates in other examples.
+- "próxima X" / "X que vem" → use LOOKUP "próxima" for X.
+- "esta X" / "nessa X" / bare "na X-feira" → use LOOKUP "esta" for X.
+- Time of day still comes from the message (e.g. "18h" → 18:00:00); only the calendar date comes from the LOOKUP.
+- If today is the named weekday and the requested time has already passed for bare/"esta", use LOOKUP "próxima" (+7).
+- Ignore dates inside other examples when resolving weekday phrases — use only the LOOKUP.
+
+${weekdayExample}
 
 Extract ALL reminders from the message. If there's only one reminder, return an array with one element.
 Respond ONLY with a valid JSON ARRAY in PLAINTEXT format with the following structure:
@@ -314,6 +342,7 @@ RULES FOR date:
 - If the time has already passed today, schedule for the next appropriate occurrence.
 - If no time is specified, use a sensible default (e.g. 08:00:00).
 - For calendar-rule recurrences (último dia útil, primeira terça-feira etc.): compute the next upcoming concrete occurrence from the current date.
+- For named weekdays ("próxima quinta", "na sexta", etc.): use WEEKDAY DATE LOOKUP + WEEKDAY RULES above.
 
 Example: Me lembre de comprar pão às 14h
 [

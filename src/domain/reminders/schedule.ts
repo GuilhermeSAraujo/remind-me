@@ -9,6 +9,9 @@ import { UserData } from "../../api/middlewares/user-extractor.middleware";
 import {
     formatFriendlyDateTime,
     getBrazilWeekday,
+    buildBrazilWeekdayDateLookup,
+    buildBrazilWeekdayPromptExample,
+    buildBrazilWeekdayPromptExampleBase,
     parseBrazilDateString,
     toBrazilDateTimeString,
     truncateToMinute,
@@ -136,9 +139,16 @@ async function extractReminderData(
         return extractReminderDataMultiPrompt(message, userId, onRetry);
     }
 
+    const now = new Date();
     let reminderData = await generateContentWithContext(
         userId,
-        PROMPT_EXTRACT_REMINDER_DATA(message, toBrazilDateTimeString(new Date()), getBrazilWeekday()),
+        PROMPT_EXTRACT_REMINDER_DATA(
+            message,
+            toBrazilDateTimeString(now),
+            getBrazilWeekday(now),
+            buildBrazilWeekdayDateLookup(now),
+            buildBrazilWeekdayPromptExample(now),
+        ),
         "extract",
         onRetry,
     );
@@ -151,10 +161,17 @@ async function extractReminderDataMultiPrompt(
     userId: string,
     onRetry?: (attempt: number) => void | Promise<void>,
 ): Promise<ReminderData[]> {
+    const now = new Date();
     // Step 1: extract base fields (title + date only)
     let baseRaw = await generateContentWithContext(
         userId,
-        PROMPT_EXTRACT_REMINDER_BASE(message, toBrazilDateTimeString(new Date()), getBrazilWeekday()),
+        PROMPT_EXTRACT_REMINDER_BASE(
+            message,
+            toBrazilDateTimeString(now),
+            getBrazilWeekday(now),
+            buildBrazilWeekdayDateLookup(now),
+            buildBrazilWeekdayPromptExampleBase(now),
+        ),
         "extract",
         onRetry,
     );
