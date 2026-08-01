@@ -13,10 +13,6 @@ interface IntentPattern {
     priority: number;
 }
 
-/** Requires an explicit delay verb + amount + unit (e.g. "adiar 30 minutos", "delay de 2 horas"). */
-export const DELAY_REMINDER_PATTERN =
-    /(?:adiar|atrasar|adia|delay(?:\s+de)?)\s+\d+\s*(?:minutos?|horas?|dias?|tempo)\b/i;
-
 export const INTENT_PATTERNS: IntentPattern[] = [
     {
         intent: 'list_reminders',
@@ -34,28 +30,29 @@ export const INTENT_PATTERNS: IntentPattern[] = [
         priority: 4
     },
     {
+        intent: 'delay_reminder',
+        pattern: /adiar|atrasar|atrase|adie|adia|adia|atrasa/,
+        priority: 5
+    },
+    {
         intent: 'thank',
         pattern: /obrigado|obrigada|valeu|gratidao|grato|grata/,
-        priority: 5
+        priority: 6
     },
     {
         intent: 'buy_premium',
         pattern: /quero assinar|assinar|assinatura|premium|plano pago|plano premium|planos/,
-        priority: 6
+        priority: 7
     },
     {
         intent: 'help',
         pattern: /ajuda|help|sobre|como|boa tarde|bom dia|boa noite|tudo bem|como vai|oi|ola|olá|alo/,
-        priority: 7
+        priority: 8
     }
 ];
 
 export function detectMessageIntent(message: string): MessageIntent | null {
     const normalized = message.toLowerCase().trim();
-
-    if (DELAY_REMINDER_PATTERN.test(normalized)) {
-        return 'delay_reminder';
-    }
 
     const firstThreeWords = normalized
         .split(/\s+/)
