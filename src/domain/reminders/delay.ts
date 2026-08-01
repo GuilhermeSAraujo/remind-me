@@ -45,7 +45,6 @@ export async function delayReminder({
         ? await findMessageById(userData.phoneNumber, quotedMsgId)
         : await findLastFromMeMessage(userData.phoneNumber);
 
-    console.log("[DELAY REMINDER] Message found:", whatsappMessage);
     if (!whatsappMessage) {
         await sendMessage({
             phone: userData.phoneNumber,
@@ -61,11 +60,6 @@ export async function delayReminder({
         title,
     }).sort({ updatedAt: -1 });
 
-    console.log(
-        "[DELAY REMINDER] Searching for reminder:",
-        { userPhoneNumber: userData.phoneNumber, title },
-        reminder,
-    );
     if (!reminder) {
         await sendMessage({
             phone: userData.phoneNumber,
