@@ -17,11 +17,11 @@ import {
     truncateToMinute,
 } from "../../shared/utils/date.utils";
 import { sendReply } from "../../integrations/whatsapp/send-reply";
+import { reactMessage } from "../../integrations/whatsapp/react-message";
 
 const MESSAGE_AI_TEMPORARY_ERROR =
     "Ocorreu um erro temporário. Seu lembrete será processado assim que a IA voltar.";
 import { calculateNextScheduledTime } from "./recurrence.utils";
-// import { reactMessage } from "../../integrations/whatsapp/react-message";
 
 export async function scheduleReminder({
     userData,
@@ -32,62 +32,66 @@ export async function scheduleReminder({
     message: string;
     messageId: string;
 }) {
-    const onRetry = () => {
-        void sendReply({
-            phone: userData.phoneNumber,
-            messageId: userData.messageId,
-            message: MESSAGE_AI_TEMPORARY_ERROR,
-        });
-    };
-    const remindersData = await extractReminderData(message, userData.phoneNumber, onRetry);
+    try {
+        const onRetry = () => {
+            void sendReply({
+                phone: userData.phoneNumber,
+                messageId: userData.messageId,
+                message: MESSAGE_AI_TEMPORARY_ERROR,
+            });
+        };
+        const remindersData = await extractReminderData(message, userData.phoneNumber, onRetry);
 
-    // Criar todos os lembretes
-    for (const reminderData of remindersData) {
-        let scheduledTime = parseBrazilDateString(reminderData.date);
-        const now = new Date();
+        // Criar todos os lembretes
+        for (const reminderData of remindersData) {
+            let scheduledTime = parseBrazilDateString(reminderData.date);
+            const now = new Date();
 
-        // Se a data agendada está no passado E existe recorrência, reagendar para próxima ocorrência
-        if (scheduledTime < now && reminderData.recurrence_type !== "none") {
-            scheduledTime = calculateNextScheduledTime(
-                scheduledTime,
-                reminderData.recurrence_type,
-                reminderData.recurrence_interval,
-                { weekday: reminderData.recurrence_weekday, nth: reminderData.recurrence_nth },
-            );
+            // Se a data agendada está no passado E existe recorrência, reagendar para próxima ocorrência
+            if (scheduledTime < now && reminderData.recurrence_type !== "none") {
+                scheduledTime = calculateNextScheduledTime(
+                    scheduledTime,
+                    reminderData.recurrence_type,
+                    reminderData.recurrence_interval,
+                    { weekday: reminderData.recurrence_weekday, nth: reminderData.recurrence_nth },
+                );
+            }
+
+            scheduledTime = truncateToMinute(scheduledTime);
+
+            await Reminder.create({
+                messageId: messageId,
+                userPhoneNumber: userData.phoneNumber,
+                title: reminderData.title.charAt(0).toUpperCase() + reminderData.title.slice(1),
+                scheduledTime: scheduledTime,
+                recurrence_type: reminderData.recurrence_type,
+                recurrence_interval: reminderData.recurrence_interval,
+                recurrence_weekday: reminderData.recurrence_weekday ?? null,
+                recurrence_nth: reminderData.recurrence_nth ?? null,
+                status: "pending",
+                maxOccurrences: reminderData.max_occurrences ?? null,
+                endDate: reminderData.end_date ? parseBrazilDateString(reminderData.end_date) : null,
+                sentCount: 0,
+            });
         }
 
-        scheduledTime = truncateToMinute(scheduledTime);
+        // Formatar mensagem de sucesso
+        const successMessage =
+            remindersData.length === 1
+                ? formatReminderCreatedMessage(remindersData[0]!)
+                : formatMultipleRemindersCreatedMessage(remindersData);
 
-        await Reminder.create({
-            messageId: messageId,
-            userPhoneNumber: userData.phoneNumber,
-            title: reminderData.title.charAt(0).toUpperCase() + reminderData.title.slice(1),
-            scheduledTime: scheduledTime,
-            recurrence_type: reminderData.recurrence_type,
-            recurrence_interval: reminderData.recurrence_interval,
-            recurrence_weekday: reminderData.recurrence_weekday ?? null,
-            recurrence_nth: reminderData.recurrence_nth ?? null,
-            status: "pending",
-            maxOccurrences: reminderData.max_occurrences ?? null,
-            endDate: reminderData.end_date ? parseBrazilDateString(reminderData.end_date) : null,
-            sentCount: 0,
+        await sendReply({
+            phone: userData.phoneNumber,
+            messageId: userData.messageId,
+            message: successMessage,
         });
 
-        // await reactMessage(messageId, "✅");
+        await reactMessage(userData.messageKey, "✅");
+    } catch (error) {
+        console.error("[SCHEDULE REMINDER] Failed:", error);
+        await reactMessage(userData.messageKey, "❌");
     }
-
-    // Formatar mensagem de sucesso
-    const successMessage =
-        remindersData.length === 1
-            ? formatReminderCreatedMessage(remindersData[0]!)
-            : formatMultipleRemindersCreatedMessage(remindersData);
-
-            // continuar daqui!!!
-    await sendReply({
-        phone: userData.phoneNumber,
-        messageId: userData.messageId,
-        message: successMessage,
-    });
 }
 
 interface ReminderData {

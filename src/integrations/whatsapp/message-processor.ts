@@ -10,12 +10,14 @@ import { PROMPT_CLASSIFY_MESSAGE_INTENT } from "../ai/gemini-constants";
 import { BUY_PREMIUM_MESSAGE, FREE_USER_REMINDER_LIMIT_MESSAGE, HELP_MESSAGES, RATE_LIMIT_EXCEEDED_MESSAGE } from "./constants";
 import { detectMessageIntent, type MessageIntent } from "../../domain/reminders/intent";
 import { enqueueReminder } from "./reminder-queue";
-// // import { reactMessage } from "./react-message";
+import { reactMessage } from "./react-message";
 import { sendMessage } from "./send-message";
 import { sendMessages } from "./send-messages";
 import type { MessagePayload, UserData } from "./types";
 
 export async function processMessage(body: MessagePayload, userData: UserData) {
+    await reactMessage(userData.messageKey, "⏳");
+
     const message = body.data?.message.conversation.trim();
     if (message.length > 250) {
         console.log("[PROCESSOR] ⚠ Message too long:", message.length);
@@ -23,6 +25,7 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
             phone: userData.phoneNumber,
             message: "Infelizmente, não é possível enviar mensagens muito longas. Por favor, envie uma mensagem mais curta.",
         });
+        await reactMessage(userData.messageKey, "❌");
         return;
     }
 
@@ -50,6 +53,7 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                     phone: userData.phoneNumber,
                     message: RATE_LIMIT_EXCEEDED_MESSAGE(resetInHours, userData.phoneNumber),
                 });
+                await reactMessage(userData.messageKey, "❌");
                 return;
             }
 
@@ -61,7 +65,7 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
         }
 
         switch (messageIntent) {
-            case "reminder":
+            case "reminder": {
                 // Check if free user has reached the 5 pending reminders limit
                 const user = await User.findOne({ phoneNumber: userData.phoneNumber });
 
@@ -76,6 +80,7 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                             phone: userData.phoneNumber,
                             message: FREE_USER_REMINDER_LIMIT_MESSAGE(userData.phoneNumber),
                         });
+                        await reactMessage(userData.messageKey, "❌");
                         return;
                     }
                 }
@@ -89,9 +94,11 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                         phone: userData.phoneNumber,
                         message: RATE_LIMIT_EXCEEDED_MESSAGE(resetInHours, userData.phoneNumber),
                     });
+                    await reactMessage(userData.messageKey, "❌");
                     return;
                 }
 
+                // Keep ⏳ until scheduleReminder sets ✅/❌
                 enqueueReminder(() =>
                     scheduleReminder({
                         userData,
@@ -101,28 +108,39 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                 );
 
                 break;
+            }
 
             case "list_reminders":
                 await listReminders({ userData });
+                await reactMessage(userData.messageKey, "✅");
                 break;
 
-            case "delete_reminder":
-                await deleteReminder({ userData, quotedMsgId: body.data.contextInfo?.stanzaId, messageText: message });
-                break;
-
-            case "delay_reminder":
-                await delayReminder({
+            case "delete_reminder": {
+                const ok = await deleteReminder({
                     userData,
                     quotedMsgId: body.data.contextInfo?.stanzaId,
                     messageText: message,
                 });
+                await reactMessage(userData.messageKey, ok ? "✅" : "❌");
                 break;
+            }
+
+            case "delay_reminder": {
+                const ok = await delayReminder({
+                    userData,
+                    quotedMsgId: body.data.contextInfo?.stanzaId,
+                    messageText: message,
+                });
+                await reactMessage(userData.messageKey, ok ? "✅" : "❌");
+                break;
+            }
 
             case "buy_premium":
                 await sendMessage({
                     phone: userData.phoneNumber,
                     message: BUY_PREMIUM_MESSAGE(userData.phoneNumber),
                 });
+                await reactMessage(userData.messageKey, "✅");
                 break;
 
             case "thank":
@@ -130,6 +148,7 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                     phone: userData.phoneNumber,
                     message: "De nada! Estou aqui para ajudar. Se precisar de algo, é só falar!",
                 });
+                await reactMessage(userData.messageKey, "✅");
                 break;
 
             case "help":
@@ -138,11 +157,14 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                     phone: userData.phoneNumber,
                     messages: HELP_MESSAGES,
                 });
+                await reactMessage(userData.messageKey, "✅");
                 break;
         }
+    } catch (error) {
+        console.error("[PROCESSOR] Failed:", error);
+        await reactMessage(userData.messageKey, "❌");
     } finally {
         // Context only lives within the same request
         clearChatSession(userData.phoneNumber);
     }
 }
-

@@ -1,15 +1,11 @@
 import { Context, Next } from "hono";
-import type { MessagePayload } from "../../integrations/whatsapp/types";
+import type { MessagePayload, UserData } from "../../integrations/whatsapp/types";
 // import qrcode from "qrcode-terminal";
 import { UserService } from "../../domain/users/user.service";
 // import { env } from "../../config/env";
 // import { resolvePhoneNumber } from "../../integrations/whatsapp/resolve-phone";
 
-export interface UserData {
-  phoneNumber: string;
-  name: string;
-  messageId: string;
-}
+export type { UserData };
 
 const userService = new UserService();
 
@@ -32,6 +28,11 @@ export async function extractUserData(c: Context, next: Next) {
         phoneNumber: user.phoneNumber,
         name: user.name,
         messageId: data.key.id,
+        messageKey: {
+          remoteJid: data.key.remoteJid,
+          fromMe: data.key.fromMe,
+          id: data.key.id,
+        },
       };
 
       c.set("userData", userData);

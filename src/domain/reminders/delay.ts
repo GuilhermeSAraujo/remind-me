@@ -41,7 +41,7 @@ export async function delayReminder({
     userData: UserData;
     quotedMsgId?: string;
     messageText: string;
-}) {
+}): Promise<boolean> {
     const whatsappMessage = quotedMsgId
         ? await findMessageById(userData.phoneNumber, quotedMsgId)
         : await findLastFromMeMessage(userData.phoneNumber);
@@ -52,7 +52,7 @@ export async function delayReminder({
             message:
                 "Não foi possível identificar o lembrete. Responda à mensagem do lembrete ou tente novamente.",
         });
-        return;
+        return false;
     }
 
     const title = stripReminderPrefix(whatsappMessage.text);
@@ -66,7 +66,7 @@ export async function delayReminder({
             phone: userData.phoneNumber,
             message: "Lembrete não encontrado",
         });
-        return;
+        return false;
     }
 
     const newScheduledTime = await extractDelayFromMessage(
@@ -79,7 +79,7 @@ export async function delayReminder({
             phone: userData.phoneNumber,
             message: "Erro ao identificar o tempo de adiamento",
         });
-        return;
+        return false;
     }
 
     const scheduledDate = truncateToMinute(parseBrazilDateString(newScheduledTime));
@@ -91,4 +91,5 @@ export async function delayReminder({
         phone: userData.phoneNumber,
         message: `Lembrete adiado com sucesso para ${formatFriendlyDateTime(scheduledDate)}`,
     });
+    return true;
 }

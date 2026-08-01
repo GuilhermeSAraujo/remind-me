@@ -27,7 +27,7 @@ export async function deleteReminder({
     userData: UserData;
     quotedMsgId?: string;
     messageText?: string;
-}) {
+}): Promise<boolean> {
     let reminder = null;
 
     // Tentar encontrar pelo número da lista se messageText contiver um número
@@ -46,7 +46,7 @@ export async function deleteReminder({
                     phone: userData.phoneNumber,
                     message: `Número inválido. Você tem ${reminders.length} lembrete(s) pendente(s). Use um número entre 1 e ${reminders.length}.`,
                 });
-                return;
+                return false;
             }
         }
     }
@@ -57,7 +57,7 @@ export async function deleteReminder({
             phone: userData.phoneNumber,
             message: `Não foi possível identificar o lembrete a ser deletado. Envie 'Listar' para identificar qual lembrete deve ser removido.`,
         });
-        return;
+        return false;
     }
     console.log("[DELETE REMINDER] ⚠ Reminder found?:", reminder);
     await Reminder.deleteOne({ _id: reminder._id, userPhoneNumber: userData.phoneNumber });
@@ -66,4 +66,5 @@ export async function deleteReminder({
         phone: userData.phoneNumber,
         message: `Lembrete "${reminder?.title}" apagado com sucesso.`,
     });
+    return true;
 }

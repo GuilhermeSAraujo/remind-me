@@ -33,8 +33,15 @@ export interface ApiResponse {
   data?: any;
 }
 
+export interface MessageKey {
+  remoteJid: string;
+  fromMe: boolean;
+  id: string;
+}
+
 export interface UserData {
   phoneNumber: string;
   name: string;
   messageId: string;
+  messageKey: MessageKey;
 }

@@ -5,10 +5,7 @@ import { Hono } from "hono";
 import { extractUserData, type UserData } from "./api/middlewares/user-extractor.middleware";
 import "./config/database";
 import { env } from "./config/env";
-// import { startSession } from "./integrations/whatsapp/client";
 import { processMessage } from "./integrations/whatsapp/message-processor";
-// import { reactMessage } from "./integrations/whatsapp/react-message";
-// import { startTyping } from "./integrations/whatsapp/start-typing";
 import type { MessagePayload } from "./integrations/whatsapp/types";
 import "./jobs/premium-payment.watcher";
 import "./jobs/scheduler";
@@ -17,8 +14,6 @@ type Variables = {
     messageBody: MessagePayload;
     userData?: UserData;
 };
-
-// await startSession();
 
 const app = new Hono<{ Variables: Variables }>();
 
