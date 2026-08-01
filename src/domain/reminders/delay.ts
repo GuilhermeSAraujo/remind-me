@@ -14,11 +14,12 @@ async function extractDelayFromMessage(
     messageText: string,
 ): Promise<string | null> {
     try {
-        const delay = await generateContentWithContext(
+        let delay = await generateContentWithContext(
             userId,
             PROMPT_IDENTIFY_DELAY(messageText),
             "identify_delay",
         );
+        delay = delay.replace(/```json/g, "").replace(/```/g, "");
         return JSON.parse(delay)?.newScheduledTime ?? null;
     } catch (error) {
         console.error("[DELAY REMINDER] Failed to extract delay:", error);
