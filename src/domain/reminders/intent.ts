@@ -1,4 +1,6 @@
 export type MessageIntent =
+    | 'register_contact'
+    | 'list_contacts'
     | 'list_reminders'
     | 'reminder'
     | 'delete_reminder'
@@ -14,6 +16,16 @@ interface IntentPattern {
 }
 
 export const INTENT_PATTERNS: IntentPattern[] = [
+    {
+        intent: 'register_contact',
+        pattern: /cadastrar/,
+        priority: 0
+    },
+    {
+        intent: 'list_contacts',
+        pattern: /contatos/,
+        priority: 0
+    },
     {
         intent: 'list_reminders',
         pattern: /lista|mostra|ver/,
