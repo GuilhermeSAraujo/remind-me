@@ -24,6 +24,7 @@ import {
     reminderCreatedForOtherSuffix,
     reminderCreatedForYouMessage,
     reminderExtractFailedForContactMessage,
+    reminderPartialCreateFailedMessage,
 } from "../contacts/messages";
 
 const MESSAGE_AI_TEMPORARY_ERROR =
@@ -47,6 +48,7 @@ export async function scheduleReminder({
     messageId: string;
     target?: ScheduleReminderTarget;
 }) {
+    let createdCount = 0;
     try {
         const onRetry = () => {
             void sendReply({
@@ -104,6 +106,7 @@ export async function scheduleReminder({
                 endDate: reminderData.end_date ? parseBrazilDateString(reminderData.end_date) : null,
                 sentCount: 0,
             });
+            createdCount++;
         }
 
         // Formatar mensagem de sucesso
@@ -133,10 +136,20 @@ export async function scheduleReminder({
     } catch (error) {
         console.error("[SCHEDULE REMINDER] Failed:", error);
         if (target) {
+            const message =
+                createdCount === 0
+                    ? reminderExtractFailedForContactMessage(target.ownerNickname)
+                    : reminderPartialCreateFailedMessage(target.ownerNickname);
             await sendReply({
                 phone: userData.phoneNumber,
                 messageId: userData.messageId,
-                message: reminderExtractFailedForContactMessage(target.ownerNickname),
+                message,
+            });
+        } else if (createdCount > 0) {
+            await sendReply({
+                phone: userData.phoneNumber,
+                messageId: userData.messageId,
+                message: reminderPartialCreateFailedMessage(),
             });
         }
         await reactMessage(userData.messageKey, "❌");

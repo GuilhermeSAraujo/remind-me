@@ -298,5 +298,52 @@ describe("scheduleReminder – createdBy and contact target", () => {
         expect(mockSendMessage).not.toHaveBeenCalled();
         expect(mockReactMessage).toHaveBeenCalledWith(sampleMessageKey, "❌");
     });
+
+    it("tells the scheduler when create fails after some reminders were persisted", async () => {
+        mockGenerateContent.mockResolvedValue(
+            JSON.stringify([
+                {
+                    title: "passear com o cachorro",
+                    date: "2026-03-10 12:00",
+                    recurrence_type: "none",
+                    recurrence_interval: 0,
+                },
+                {
+                    title: "tomar remédio",
+                    date: "2026-03-10 20:00",
+                    recurrence_type: "none",
+                    recurrence_interval: 0,
+                },
+            ]),
+        );
+        mockReminderCreate
+            .mockResolvedValueOnce({})
+            .mockRejectedValueOnce(new Error("DB error"));
+
+        await scheduleReminder({
+            userData: {
+                phoneNumber: "5511999999999",
+                messageId: "wamid.SAMPLE",
+                name: "Victor",
+                messageKey: sampleMessageKey,
+            },
+            message: "Lembre a Isabela amanhã 12h de passear e tomar remédio",
+            messageId: "wamid.SAMPLE",
+            target: {
+                ownerPhoneNumber: "5511888888888",
+                ownerNickname: "Isabela",
+                creatorDisplayName: "Victor",
+            },
+        });
+
+        expect(mockReminderCreate).toHaveBeenCalledTimes(2);
+        expect(mockSendReply).toHaveBeenCalledTimes(1);
+        const reply = mockSendReply.mock.calls[0]![0]!;
+        expect(reply.message).toContain("Alguns podem ter sido criados");
+        expect(reply.message).toContain("Envie listar");
+        expect(reply.message).not.toContain("Não consegui criar o lembrete para Isabela");
+        expect(mockSendMessage).not.toHaveBeenCalled();
+        expect(mockReactMessage).toHaveBeenCalledWith(sampleMessageKey, "❌");
+    });
 });
 
