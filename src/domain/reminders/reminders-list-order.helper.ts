@@ -11,3 +11,14 @@ export async function getRemindersInListOrder(userPhoneNumber: string) {
     }).sort({ scheduledTime: 1 });
 }
 
+/**
+ * Lembretes que o usuário criou para outras pessoas (somente leitura na listagem).
+ */
+export async function getRemindersCreatedForOthers(creatorPhoneNumber: string) {
+    return Reminder.find({
+        createdByPhoneNumber: creatorPhoneNumber,
+        userPhoneNumber: { $ne: creatorPhoneNumber },
+        status: "pending",
+    }).sort({ scheduledTime: 1 });
+}
+

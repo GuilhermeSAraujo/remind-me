@@ -2,7 +2,12 @@ import { UserData } from "../../api/middlewares/user-extractor.middleware";
 import { sendMessage } from "../../integrations/whatsapp/send-message";
 import { sendMessages } from "../../integrations/whatsapp/send-messages";
 import { IReminder } from "../../domain/reminders/reminder.model";
-import { getRemindersInListOrder } from "./reminders-list-order.helper";
+import { nicknameForOther } from "../contacts/queries";
+import { phonesMatch } from "../contacts/phone";
+import {
+    getRemindersCreatedForOthers,
+    getRemindersInListOrder,
+} from "./reminders-list-order.helper";
 
 const WEEKDAY_NAMES: Record<number, string> = {
     0: "domingo",
@@ -60,15 +65,92 @@ function formatRecurrence(reminder: {
     }
 }
 
+function formatScheduledDate(date: Date): string {
+    return date.toLocaleString("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
+
+async function formatOwnedLine(
+    reminder: IReminder,
+    index: number,
+    ownerPhone: string,
+): Promise<string> {
+    const dateStr = formatScheduledDate(reminder.scheduledTime);
+    const base = `${index + 1}. *${reminder.title}* - ${dateStr}`;
+
+    const extraParts: string[] = [];
+
+    const recurrenceLabel = formatRecurrence(reminder);
+    if (recurrenceLabel !== null) {
+        extraParts.push(recurrenceLabel);
+    }
+
+    if (reminder.endDate) {
+        const endDateStr = reminder.endDate.toLocaleDateString("pt-BR", {
+            timeZone: "America/Sao_Paulo",
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+        });
+        extraParts.push(`até ${endDateStr}`);
+    }
+
+    if (reminder.maxOccurrences != null) {
+        const plural = reminder.maxOccurrences === 1 ? "vez" : "vezes";
+        extraParts.push(`máx. ${reminder.maxOccurrences} ${plural}`);
+    }
+
+    if (
+        reminder.createdByPhoneNumber &&
+        !phonesMatch(reminder.createdByPhoneNumber, ownerPhone)
+    ) {
+        const nickname = await nicknameForOther(ownerPhone, reminder.createdByPhoneNumber);
+        extraParts.push(`por ${nickname ?? "contato"}`);
+    }
+
+    const extras = extraParts.length > 0 ? ` · ${extraParts.join(" · ")}` : "";
+    return `${base}${extras}`;
+}
+
+async function formatCreatedForOthersBlock(
+    reminders: IReminder[],
+    viewerPhone: string,
+): Promise<string> {
+    const lines: string[] = [];
+    for (const reminder of reminders) {
+        const nickname =
+            (await nicknameForOther(viewerPhone, reminder.userPhoneNumber)) ?? "contato";
+        const dateStr = formatScheduledDate(reminder.scheduledTime);
+        lines.push(`• *${reminder.title}* — para ${nickname} — ${dateStr}`);
+    }
+
+    return `📤 *Agendados para outros* (somente leitura)\n${lines.join("\n")}`;
+}
+
 const LIST_EMPTY_MESSAGES: string[] = [
     "Você não tem lembretes pendentes. 📭",
     'Para criar um: "Me lembre de comprar pão às 14h" ou "Lembrete para ir ao médico amanhã às 10h".',
 ];
 
-export async function listReminders({ userData }: { userData: UserData }) {
-    const reminders = await getRemindersInListOrder(userData.phoneNumber);
+const EMPTY_OWNED_WITH_OTHERS_HINT =
+    "💡 Para apagar um lembrete seu, envie listar quando tiver lembretes próprios e use apagar 1.";
 
-    if (reminders.length === 0) {
+const OWNED_APAGAR_HINT =
+    "💡 Você pode excluir um lembrete usando: apagar 1, deletar 2, remover 3, etc.";
+
+export async function listReminders({ userData }: { userData: UserData }) {
+    const [reminders, createdForOthers] = await Promise.all([
+        getRemindersInListOrder(userData.phoneNumber),
+        getRemindersCreatedForOthers(userData.phoneNumber),
+    ]);
+
+    if (reminders.length === 0 && createdForOthers.length === 0) {
         await sendMessages({
             phone: userData.phoneNumber,
             messages: LIST_EMPTY_MESSAGES,
@@ -76,49 +158,40 @@ export async function listReminders({ userData }: { userData: UserData }) {
         return;
     }
 
-    const remindersList = reminders
-        .map((reminder, index) => {
-            const dateStr = reminder.scheduledTime.toLocaleString("pt-BR", {
-                timeZone: "America/Sao_Paulo",
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-            });
+    if (reminders.length === 0 && createdForOthers.length > 0) {
+        const readonlyBlock = await formatCreatedForOthersBlock(
+            createdForOthers,
+            userData.phoneNumber,
+        );
+        await sendMessages({
+            phone: userData.phoneNumber,
+            messages: [
+                "Você não tem lembretes próprios pendentes.",
+                readonlyBlock,
+                EMPTY_OWNED_WITH_OTHERS_HINT,
+            ],
+        });
+        return;
+    }
 
-            const base = `${index + 1}. *${reminder.title}* - ${dateStr}`;
+    const ownedLines = await Promise.all(
+        reminders.map((reminder, index) =>
+            formatOwnedLine(reminder, index, userData.phoneNumber),
+        ),
+    );
+    const remindersList = ownedLines.join("\n");
 
-            const extraParts: string[] = [];
+    let message = `📋 *Seus Lembretes Pendentes (${reminders.length})*\n\n${remindersList}`;
 
-            const recurrenceLabel = formatRecurrence(reminder);
-            if (recurrenceLabel !== null) {
-                extraParts.push(recurrenceLabel);
-            }
+    if (createdForOthers.length > 0) {
+        const readonlyBlock = await formatCreatedForOthersBlock(
+            createdForOthers,
+            userData.phoneNumber,
+        );
+        message += `\n\n${readonlyBlock}`;
+    }
 
-            if (reminder.endDate) {
-                const endDateStr = reminder.endDate.toLocaleDateString("pt-BR", {
-                    timeZone: "America/Sao_Paulo",
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                });
-                extraParts.push(`até ${endDateStr}`);
-            }
-
-            if (reminder.maxOccurrences != null) {
-                const plural = reminder.maxOccurrences === 1 ? "vez" : "vezes";
-                extraParts.push(`máx. ${reminder.maxOccurrences} ${plural}`);
-            }
-
-            const extras =
-                extraParts.length > 0 ? ` · ${extraParts.join(" · ")}` : "";
-
-            return `${base}${extras}`;
-        })
-        .join("\n");
-
-    const message = `📋 *Seus Lembretes Pendentes (${reminders.length})*\n\n${remindersList}\n\n💡 Você pode excluir um lembrete usando: apagar 1, deletar 2, remover 3, etc.`;
+    message += `\n\n${OWNED_APAGAR_HINT}`;
 
     await sendMessage({
         phone: userData.phoneNumber,
