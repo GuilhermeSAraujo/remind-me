@@ -11,7 +11,7 @@ export type ReminderTarget =
 const SELF_PATTERN = /\bme\s+lembr(e|ar|a)\b|\bpra\s+mim\b|\bpara\s+mim\b/i;
 
 const TARGETING_PREFIX =
-    /(lembr(?:e|ar|a)|agend(?:e|a)|cri(?:e|a)|lembrete)\s+(?:a|o|à|ao|pra|para(?:\s+a|\s+o)?)\s+/i;
+    /(lembr(?:e|ar|a)|agend(?:e|a)|cri(?:e|a)|lembrete)\s+(?:a|o|à|ao|pra|para\s+(?:a|o))\s+/i;
 
 function escapeRegExp(value: string): string {
     return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -35,7 +35,7 @@ export function resolveReminderTargetFromContacts(
 
     for (const contact of sorted) {
         const nick = contact.nickname;
-        const prefixRe = new RegExp(`^${escapeRegExp(nick)}(?=\\s|$)`, "i");
+        const prefixRe = new RegExp(`^${escapeRegExp(nick)}(?![\\p{L}\\p{N}])`, "iu");
         if (prefixRe.test(nameRemainder)) {
             return {
                 kind: "contact",
@@ -46,7 +46,7 @@ export function resolveReminderTargetFromContacts(
     }
 
     const unknownName = nameRemainder.trim().split(/\s+/)[0];
-    if (unknownName) {
+    if (unknownName && contacts.length > 0) {
         return { kind: "unknown_name", name: unknownName };
     }
 
@@ -63,8 +63,8 @@ export async function resolveReminderTarget(
 
 export function stripContactTarget(message: string, nickname: string): string {
     const re = new RegExp(
-        `((?:lembr(?:e|ar|a)|agend(?:e|a)|cri(?:e|a)|lembrete))\\s+(?:a|o|à|ao|pra|para\\s+a|para\\s+o)\\s+${escapeRegExp(nickname)}(?=\\s|$)`,
-        "i",
+        `((?:lembr(?:e|ar|a)|agend(?:e|a)|cri(?:e|a)|lembrete))\\s+(?:a|o|à|ao|pra|para\\s+a|para\\s+o)\\s+${escapeRegExp(nickname)}(?![\\p{L}\\p{N}])`,
+        "iu",
     );
     return message.replace(re, "$1");
 }

@@ -35,6 +35,37 @@ describe("resolveReminderTargetFromContacts", () => {
         ).toEqual({ kind: "unknown_name", name: "Maria" });
     });
 
+    it("treats self-reminder phrasing with bare para as self even with contacts", () => {
+        for (const message of [
+            "Lembrete para ir ao médico amanhã às 10h",
+            "Lembrete para reunião amanhã 15:30",
+            "Crie um lembrete para comprar pão",
+        ]) {
+            expect(resolveReminderTargetFromContacts(message, contacts)).toEqual({
+                kind: "self",
+            });
+        }
+    });
+
+    it("falls back to self when targeting a name but the sender has no accepted contacts", () => {
+        expect(
+            resolveReminderTargetFromContacts("Lembre a Maria amanhã 10h de x", []),
+        ).toEqual({ kind: "self" });
+    });
+
+    it("resolves a nickname followed by a comma", () => {
+        expect(
+            resolveReminderTargetFromContacts(
+                "Lembre a Isabela, amanhã 12h de passear com o cachorro",
+                contacts,
+            ),
+        ).toEqual({
+            kind: "contact",
+            nickname: "Isabela",
+            ownerPhoneDigits: "5531111111111",
+        });
+    });
+
     it("resolves accented nicknames when more text follows", () => {
         const joseContacts = [{ nickname: "José", otherPhoneDigits: "5532222222222" }];
         expect(

@@ -9,6 +9,7 @@ import {
     inviteRejectedInviterMessage,
     inviteUnknownReactionMessage,
 } from "./messages";
+import { nicknameTaken } from "./queries";
 
 const YES_TEXT = new Set([
     "sim",
@@ -51,6 +52,22 @@ export function classifyInviteReaction(emoji: string): "yes" | "no" | "unknown" 
     return "unknown";
 }
 
+async function uniqueNicknameForViewer(
+    viewerPhone: string,
+    desired: string,
+    exceptOtherPhone: string,
+): Promise<string> {
+    if (!(await nicknameTaken(viewerPhone, desired, exceptOtherPhone))) {
+        return desired;
+    }
+    for (let n = 2; ; n++) {
+        const candidate = `${desired} ${n}`;
+        if (!(await nicknameTaken(viewerPhone, candidate, exceptOtherPhone))) {
+            return candidate;
+        }
+    }
+}
+
 export async function applyInviteDecision(params: {
     userData: UserData;
     contact: IContact;
@@ -86,7 +103,12 @@ export async function applyInviteDecision(params: {
     }
 
     // decision === "yes"
-    const nicknameForInviter = inviter?.name?.trim() || "Contato";
+    const desiredNickname = inviter?.name?.trim() || "Contato";
+    const nicknameForInviter = await uniqueNicknameForViewer(
+        userData.phoneNumber,
+        desiredNickname,
+        contact.inviterPhoneNumber,
+    );
     contact.status = "accepted";
     contact.inviteeNicknameForInviter = nicknameForInviter;
     await contact.save();

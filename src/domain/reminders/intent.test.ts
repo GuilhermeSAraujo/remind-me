@@ -16,10 +16,14 @@ describe("detectMessageIntent", () => {
         expect(detectMessageIntent("apagar 2")).toBe("delete_reminder");
     });
 
-    it("detects register_contact from cadastrar", () => {
+    it("detects register_contact from cadastrar pessoa", () => {
         expect(detectMessageIntent("Cadastrar pessoa (31)999999999 Victor")).toBe(
             "register_contact",
         );
+    });
+
+    it("does not treat reminder text containing cadastrar as register_contact", () => {
+        expect(detectMessageIntent("Lembre de cadastrar o carro")).toBe("reminder");
     });
 
     it("detects list_contacts from Contatos and meus contatos", () => {

@@ -1,9 +1,12 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-const { mockSendMessage, mockFindUserByAnyPhone } = vi.hoisted(() => ({
-    mockSendMessage: vi.fn(),
-    mockFindUserByAnyPhone: vi.fn(),
-}));
+const { mockSendMessage, mockFindUserByAnyPhone, mockNicknameTaken } = vi.hoisted(
+    () => ({
+        mockSendMessage: vi.fn(),
+        mockFindUserByAnyPhone: vi.fn(),
+        mockNicknameTaken: vi.fn(),
+    }),
+);
 
 vi.mock("../../integrations/whatsapp/send-message", () => ({
     sendMessage: mockSendMessage,
@@ -11,6 +14,10 @@ vi.mock("../../integrations/whatsapp/send-message", () => ({
 
 vi.mock("../users/find-user-by-phone", () => ({
     findUserByAnyPhone: mockFindUserByAnyPhone,
+}));
+
+vi.mock("./queries", () => ({
+    nicknameTaken: mockNicknameTaken,
 }));
 
 import {
@@ -73,6 +80,7 @@ describe("applyInviteDecision", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockSendMessage.mockResolvedValue(true);
+        mockNicknameTaken.mockResolvedValue(false);
         mockFindUserByAnyPhone.mockResolvedValue({
             phoneNumber: "5531111111111@s.whatsapp.net",
             name: "Isabela",
@@ -98,6 +106,34 @@ describe("applyInviteDecision", () => {
         expect(mockSendMessage).toHaveBeenCalledWith({
             phone: "5531111111111@s.whatsapp.net",
             message: inviteAcceptedInviterMessage("Victor"),
+        });
+    });
+
+    it("suffix-disambiguates inviter nickname when already taken for invitee", async () => {
+        mockNicknameTaken
+            .mockResolvedValueOnce(true)
+            .mockResolvedValueOnce(false);
+        const contact = stubContact();
+        await applyInviteDecision({
+            userData: invitee,
+            contact,
+            decision: "yes",
+        });
+
+        expect(contact.inviteeNicknameForInviter).toBe("Isabela 2");
+        expect(mockNicknameTaken).toHaveBeenCalledWith(
+            invitee.phoneNumber,
+            "Isabela",
+            contact.inviterPhoneNumber,
+        );
+        expect(mockNicknameTaken).toHaveBeenCalledWith(
+            invitee.phoneNumber,
+            "Isabela 2",
+            contact.inviterPhoneNumber,
+        );
+        expect(mockSendMessage).toHaveBeenCalledWith({
+            phone: invitee.phoneNumber,
+            message: inviteAcceptedInviteeMessage("Isabela 2"),
         });
     });
 

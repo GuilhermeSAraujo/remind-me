@@ -18,7 +18,7 @@ interface IntentPattern {
 export const INTENT_PATTERNS: IntentPattern[] = [
     {
         intent: 'register_contact',
-        pattern: /cadastrar/,
+        pattern: /^cadastrar\s+pessoa/,
         priority: 0
     },
     {
