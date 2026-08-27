@@ -25,6 +25,15 @@ vi.mock("@google/generative-ai", () => ({
 }));
 
 import { clearChatSession, generateContentWithContext } from "./gemini-client";
+import { PROMPT_CLASSIFY_MESSAGE_INTENT } from "./gemini-constants";
+
+describe("PROMPT_CLASSIFY_MESSAGE_INTENT", () => {
+  it("includes register_contact and list_contacts intents", () => {
+    const prompt = PROMPT_CLASSIFY_MESSAGE_INTENT("x");
+    expect(prompt).toContain("register_contact");
+    expect(prompt).toContain("list_contacts");
+  });
+});
 
 describe("generateContentWithContext", () => {
   beforeEach(() => {

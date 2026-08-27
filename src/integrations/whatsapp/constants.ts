@@ -4,6 +4,8 @@ export const HELP_MESSAGES: string[] = [
     'Recorrentes também: "todo dia às 9h", "toda semana às 19h", "nos dias úteis às 7h".',
     'Ver lembretes: "Listar lembretes" ou "Ver meus lembretes".',
     'Para apagar ou adiar: responda a mensagem do lembrete com "Apagar" ou "Adiar 30 minutos" (ou o tempo que quiser).',
+    'Contatos: "Cadastrar pessoa (31)999999999 Nome" envia um convite. A outra pessoa aceita com sim, não ou 👍 / 👎. Envie "Contatos" para listar.',
+    'Lembrete para um contato: "Lembre a Nome amanhã 12h de passear com o cachorro". Quem recebe o lembrete é dono dele (apagar/adiar).',
 ];
 
 const PREMIUM_LINK = (phoneNumber: string) =>

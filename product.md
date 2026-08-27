@@ -64,6 +64,16 @@ Users can reply to a reminder notification with a delay instruction:
 - *"amanhã"* — reschedules to the next day.
 - A single character (e.g. *"1"*) — defaults to +5 minutes.
 
+### Contacts and reminders for others
+
+Users can invite another person as a contact and schedule reminders **for** that person.
+
+- **Invite:** *"Cadastrar pessoa (31)999999999 Victor"* sends an invite. The invitee accepts or rejects with *"sim"* / *"não"* (or 👍 / 👎). Both parties are notified when the invite is answered.
+- **List contacts:** *"Contatos"* shows accepted contacts (or guidance if the list is empty).
+- **Schedule for a contact:** *"Lembre a Victor amanhã 12h de passear com o cachorro"*. The **owner** (`userPhoneNumber`) is who receives the reminder and can delete/delay it; the **creator** (`createdByPhoneNumber`) is who scheduled it.
+- **List reminders:** numbered list = reminders the user owns; below that, an unnumbered readonly section shows reminders they created for others. *"apagar N"* only applies to the numbered list.
+- All feedback for this feature is always in **Brazilian Portuguese**, with a clear next step.
+
 ### Help
 
 Sending *"ajuda"* or *"help"* causes the bot to send a multi-message help card explaining all available commands.
@@ -130,13 +140,26 @@ AI usage is tracked per-user with a 24-hour token window stored in MongoDB, enfo
 ### Reminder
 | Field | Type | Description |
 |---|---|---|
-| `userPhoneNumber` | String | Owner's phone number |
+| `userPhoneNumber` | String | Owner's phone number (who receives the reminder) |
+| `createdByPhoneNumber` | String | Who scheduled the reminder (equals owner for self-reminders) |
 | `title` | String | What to remind the user of |
 | `scheduledTime` | Date | When to deliver the reminder |
 | `recurrence_type` | Enum | `none`, `hourly`, `daily`, `weekly`, `monthly`, `yearly`, `weekday`, `weekend` |
 | `recurrence_interval` | Number | Interval multiplier for the recurrence type |
 | `status` | Enum | `pending`, `sent`, `cancelled` |
 | `messageId` | String | WhatsApp message ID that created this reminder |
+
+### Contact
+| Field | Type | Description |
+|---|---|---|
+| `inviterPhoneNumber` | String | Who sent the invite |
+| `inviteePhoneNumber` | String | Who was invited (may not be a User yet) |
+| `inviterNicknameForInvitee` | String | Nickname the inviter chose for the invitee |
+| `inviteeNicknameForInviter` | String \| null | Set on accept from the inviter's `User.name` |
+| `status` | Enum | `pending`, `accepted`, `rejected` |
+| `inviteMessageId` | String | WhatsApp message ID of the invite sent to the invitee |
+
+One document per inviter → invitee pair. Free-tier pending quota counts against `createdByPhoneNumber` on Reminder.
 
 ### PremiumPayment
 | Field | Type | Description |

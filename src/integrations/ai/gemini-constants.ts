@@ -9,9 +9,11 @@ Classify the message into one of these intents:
 - "delete_reminder": User wants to delete a reminder
 - "delay_reminder": User wants to delay a reminder
 - "buy_premium": User wants to buy, subscribe, or upgrade to the premium plan
+- "register_contact": User wants to register/add a contact (cadastrar pessoa)
+- "list_contacts": User wants to see their contacts
 - "help": User needs help or the message doesn't fit other categories
 
-Respond with ONLY one of these exact words: reminder, list_reminders, delete_reminder, delay_reminder, buy_premium, or help
+Respond with ONLY one of these exact words: reminder, list_reminders, delete_reminder, delay_reminder, buy_premium, register_contact, list_contacts, or help
 
 Examples:
 "Me lembre de comprar pão às 14h" -> reminder
@@ -36,6 +38,9 @@ Examples:
 "Quero assinar o premium" -> buy_premium
 "Quanto custa o plano pago?" -> buy_premium
 "Quero comprar o premium" -> buy_premium
+"Cadastrar pessoa (31)999999999 Victor" -> register_contact
+"Contatos" -> list_contacts
+"Meus contatos" -> list_contacts
 "Quero começar a usar" -> help
 "O que você faz?" -> help
 "Ajuda" -> help
