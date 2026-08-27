@@ -1,11 +1,17 @@
 import { applyInviteDecision, classifyInviteReaction, classifyInviteText } from "../../domain/contacts/invite-response";
 import { listContacts } from "../../domain/contacts/list";
+import {
+    reminderOwnerMissingMessage,
+    reminderUnknownContactMessage,
+} from "../../domain/contacts/messages";
 import { findLatestPendingForInvitee, findPendingByInviteMessageId } from "../../domain/contacts/queries";
 import { registerContact } from "../../domain/contacts/register";
+import { resolveReminderTarget } from "../../domain/contacts/resolve-reminder-target";
 import { deleteReminder } from "../../domain/reminders/delete";
 import { listReminders } from "../../domain/reminders/list";
 import { Reminder } from "../../domain/reminders/reminder.model";
 import { scheduleReminder } from "../../domain/reminders/schedule";
+import { findUserByAnyPhone } from "../../domain/users/find-user-by-phone";
 import { delayReminder } from "../../domain/reminders/delay";
 import { User } from "../../domain/users/user.model";
 import { checkRateLimit } from "../../services/rate-limiter.service";
@@ -117,8 +123,12 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
 
                 if (!user?.isPremium) {
                     const pendingRemindersCount = await Reminder.countDocuments({
-                        userPhoneNumber: userData.phoneNumber,
-                        status: "pending"
+                        status: "pending",
+                        $or: [
+                            { createdByPhoneNumber: userData.phoneNumber },
+                            { createdByPhoneNumber: { $in: [null, ""] }, userPhoneNumber: userData.phoneNumber },
+                            { createdByPhoneNumber: { $exists: false }, userPhoneNumber: userData.phoneNumber },
+                        ],
                     });
 
                     if (pendingRemindersCount >= 5) {
@@ -144,13 +154,41 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                     return;
                 }
 
+                const target = await resolveReminderTarget(userData.phoneNumber, message);
+                if (target.kind === "unknown_name") {
+                    await sendMessage({
+                        phone: userData.phoneNumber,
+                        message: reminderUnknownContactMessage(target.name),
+                    });
+                    await reactMessage(userData.messageKey, "❌");
+                    break;
+                }
+                let scheduleTarget: { ownerPhoneNumber: string; ownerNickname: string; creatorDisplayName: string } | undefined;
+                if (target.kind === "contact") {
+                    const owner = await findUserByAnyPhone(target.ownerPhoneDigits);
+                    if (!owner) {
+                        await sendMessage({
+                            phone: userData.phoneNumber,
+                            message: reminderOwnerMissingMessage(target.nickname),
+                        });
+                        await reactMessage(userData.messageKey, "❌");
+                        break;
+                    }
+                    scheduleTarget = {
+                        ownerPhoneNumber: owner.phoneNumber,
+                        ownerNickname: target.nickname,
+                        creatorDisplayName: userData.name,
+                    };
+                }
+
                 // Keep ⏳ until scheduleReminder sets ✅/❌
                 enqueueReminder(() =>
                     scheduleReminder({
                         userData,
-                        message: message,
+                        message,
                         messageId: body.data.key.id,
-                    })
+                        target: scheduleTarget,
+                    }),
                 );
 
                 break;

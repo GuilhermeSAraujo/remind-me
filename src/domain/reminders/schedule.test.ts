@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { mockGenerateContent, mockSendReply, mockReminderCreate, mockReactMessage } =
+const { mockGenerateContent, mockSendReply, mockSendMessage, mockReminderCreate, mockReactMessage } =
     vi.hoisted(() => ({
         mockGenerateContent: vi.fn(),
         mockSendReply: vi.fn(),
+        mockSendMessage: vi.fn(),
         mockReminderCreate: vi.fn(),
         mockReactMessage: vi.fn(),
     }));
@@ -15,6 +16,10 @@ vi.mock("../../integrations/ai/gemini-client", () => ({
 
 vi.mock("../../integrations/whatsapp/send-reply", () => ({
     sendReply: mockSendReply,
+}));
+
+vi.mock("../../integrations/whatsapp/send-message", () => ({
+    sendMessage: mockSendMessage,
 }));
 
 vi.mock("../../integrations/whatsapp/react-message", () => ({
@@ -40,6 +45,7 @@ describe("scheduleReminder – confirmation messages with end date and max occur
         vi.clearAllMocks();
         mockGenerateContent.mockResolvedValue("[]");
         mockSendReply.mockResolvedValue(true);
+        mockSendMessage.mockResolvedValue(true);
         mockReactMessage.mockResolvedValue(true);
     });
 
@@ -142,6 +148,94 @@ describe("scheduleReminder – confirmation messages with end date and max occur
 
         expect(mockSendReply).not.toHaveBeenCalled();
         expect(mockReactMessage).toHaveBeenCalledWith(sampleMessageKey, "❌");
+    });
+});
+
+describe("scheduleReminder – createdBy and contact target", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockGenerateContent.mockResolvedValue("[]");
+        mockSendReply.mockResolvedValue(true);
+        mockSendMessage.mockResolvedValue(true);
+        mockReactMessage.mockResolvedValue(true);
+    });
+
+    it("sets createdByPhoneNumber equal to the owner for self reminders", async () => {
+        mockGenerateContent.mockResolvedValue(
+            JSON.stringify([
+                {
+                    title: "tomar remédio",
+                    date: "2026-03-10 08:00",
+                    recurrence_type: "none",
+                    recurrence_interval: 0,
+                },
+            ]),
+        );
+
+        await scheduleReminder({
+            userData: {
+                phoneNumber: "5511999999999",
+                messageId: "wamid.SAMPLE",
+                name: "Victor",
+                messageKey: sampleMessageKey,
+            },
+            message: "Me lembre de tomar remédio",
+            messageId: "wamid.SAMPLE",
+        });
+
+        expect(mockReminderCreate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                userPhoneNumber: "5511999999999",
+                createdByPhoneNumber: "5511999999999",
+            }),
+        );
+        expect(mockSendMessage).not.toHaveBeenCalled();
+    });
+
+    it("creates for the contact owner, confirms the scheduler, and notifies the owner", async () => {
+        mockGenerateContent.mockResolvedValue(
+            JSON.stringify([
+                {
+                    title: "passear com o cachorro",
+                    date: "2026-03-10 12:00",
+                    recurrence_type: "none",
+                    recurrence_interval: 0,
+                },
+            ]),
+        );
+
+        await scheduleReminder({
+            userData: {
+                phoneNumber: "5511999999999",
+                messageId: "wamid.SAMPLE",
+                name: "Victor",
+                messageKey: sampleMessageKey,
+            },
+            message: "Lembre a Isabela amanhã 12h de passear com o cachorro",
+            messageId: "wamid.SAMPLE",
+            target: {
+                ownerPhoneNumber: "5511888888888",
+                ownerNickname: "Isabela",
+                creatorDisplayName: "Victor",
+            },
+        });
+
+        expect(mockReminderCreate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                userPhoneNumber: "5511888888888",
+                createdByPhoneNumber: "5511999999999",
+            }),
+        );
+
+        expect(mockSendReply).toHaveBeenCalledTimes(1);
+        const reply = mockSendReply.mock.calls[0]![0]!;
+        expect(reply.phone).toBe("5511999999999");
+        expect(reply.message).toContain("para Isabela");
+
+        expect(mockSendMessage).toHaveBeenCalledTimes(1);
+        const ownerNote = mockSendMessage.mock.calls[0]![0]!;
+        expect(ownerNote.phone).toBe("5511888888888");
+        expect(ownerNote.message).toContain("criou um lembrete para você");
     });
 });
 

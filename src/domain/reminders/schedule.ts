@@ -17,20 +17,34 @@ import {
     truncateToMinute,
 } from "../../shared/utils/date.utils";
 import { sendReply } from "../../integrations/whatsapp/send-reply";
+import { sendMessage } from "../../integrations/whatsapp/send-message";
 import { reactMessage } from "../../integrations/whatsapp/react-message";
+import { stripContactTarget } from "../contacts/resolve-reminder-target";
+import {
+    reminderCreatedForOtherSuffix,
+    reminderCreatedForYouMessage,
+} from "../contacts/messages";
 
 const MESSAGE_AI_TEMPORARY_ERROR =
     "Ocorreu um erro temporário. Seu lembrete será processado assim que a IA voltar.";
 import { calculateNextScheduledTime } from "./recurrence.utils";
 
+export type ScheduleReminderTarget = {
+    ownerPhoneNumber: string;
+    ownerNickname: string;
+    creatorDisplayName: string;
+};
+
 export async function scheduleReminder({
     userData,
     message,
     messageId,
+    target,
 }: {
     userData: UserData;
     message: string;
     messageId: string;
+    target?: ScheduleReminderTarget;
 }) {
     try {
         const onRetry = () => {
@@ -40,7 +54,10 @@ export async function scheduleReminder({
                 message: MESSAGE_AI_TEMPORARY_ERROR,
             });
         };
-        const remindersData = await extractReminderData(message, userData.phoneNumber, onRetry);
+        const extractMessage = target
+            ? stripContactTarget(message, target.ownerNickname)
+            : message;
+        const remindersData = await extractReminderData(extractMessage, userData.phoneNumber, onRetry);
 
         // Criar todos os lembretes
         for (const reminderData of remindersData) {
@@ -61,8 +78,9 @@ export async function scheduleReminder({
 
             await Reminder.create({
                 messageId: messageId,
-                userPhoneNumber: userData.phoneNumber,
-                title: reminderData.title.charAt(0).toUpperCase() + reminderData.title.slice(1),
+                userPhoneNumber: target?.ownerPhoneNumber ?? userData.phoneNumber,
+                createdByPhoneNumber: userData.phoneNumber,
+                title: capitalizeTitle(reminderData.title),
                 scheduledTime: scheduledTime,
                 recurrence_type: reminderData.recurrence_type,
                 recurrence_interval: reminderData.recurrence_interval,
@@ -81,11 +99,22 @@ export async function scheduleReminder({
                 ? formatReminderCreatedMessage(remindersData[0]!)
                 : formatMultipleRemindersCreatedMessage(remindersData);
 
+        const creatorMessage = target
+            ? `${successMessage}${reminderCreatedForOtherSuffix(target.ownerNickname)}`
+            : successMessage;
+
         await sendReply({
             phone: userData.phoneNumber,
             messageId: userData.messageId,
-            message: successMessage,
+            message: creatorMessage,
         });
+
+        if (target) {
+            await sendMessage({
+                phone: target.ownerPhoneNumber,
+                message: formatOwnerCreatedMessage(target.creatorDisplayName, remindersData),
+            });
+        }
 
         await reactMessage(userData.messageKey, "✅");
     } catch (error) {
@@ -109,6 +138,24 @@ interface ReminderData {
     recurrence_nth: number | null;
     max_occurrences?: number | null;
     end_date?: string | null;
+}
+
+function capitalizeTitle(title: string): string {
+    return title.charAt(0).toUpperCase() + title.slice(1);
+}
+
+function formatOwnerCreatedMessage(creatorDisplayName: string, remindersData: ReminderData[]): string {
+    if (remindersData.length === 1) {
+        const reminder = remindersData[0]!;
+        return reminderCreatedForYouMessage(
+            creatorDisplayName,
+            capitalizeTitle(reminder.title),
+            formatFriendlyDateTime(parseBrazilDateString(reminder.date)),
+        );
+    }
+
+    const list = formatMultipleRemindersCreatedMessage(remindersData);
+    return `${creatorDisplayName} criou lembretes para você.\n${list}\nEles são seus: você pode apagar ou adiar. Envie listar para ver.`;
 }
 
 interface BaseReminderData {

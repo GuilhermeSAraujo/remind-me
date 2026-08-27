@@ -17,6 +17,8 @@ const {
     mockClearChatSession,
     mockUserFindOne,
     mockReminderCountDocuments,
+    mockResolveReminderTarget,
+    mockFindUserByAnyPhone,
 } = vi.hoisted(() => ({
     mockReactMessage: vi.fn(),
     mockSendMessage: vi.fn(),
@@ -31,6 +33,8 @@ const {
     mockClearChatSession: vi.fn(),
     mockUserFindOne: vi.fn(),
     mockReminderCountDocuments: vi.fn(),
+    mockResolveReminderTarget: vi.fn(),
+    mockFindUserByAnyPhone: vi.fn(),
 }));
 
 vi.mock("./react-message", () => ({
@@ -102,6 +106,14 @@ vi.mock("../../domain/contacts/invite-response", async (importOriginal) => {
         applyInviteDecision: mockApplyInviteDecision,
     };
 });
+
+vi.mock("../../domain/contacts/resolve-reminder-target", () => ({
+    resolveReminderTarget: mockResolveReminderTarget,
+}));
+
+vi.mock("../../domain/users/find-user-by-phone", () => ({
+    findUserByAnyPhone: mockFindUserByAnyPhone,
+}));
 
 import { processMessage } from "./message-processor";
 
@@ -195,6 +207,8 @@ describe("processMessage – contacts", () => {
         });
         mockUserFindOne.mockResolvedValue({ isPremium: true });
         mockReminderCountDocuments.mockResolvedValue(0);
+        mockResolveReminderTarget.mockResolvedValue({ kind: "self" });
+        mockFindUserByAnyPhone.mockResolvedValue(null);
     });
 
     it("applies a 👍 reaction on a pending invite and does not register a contact", async () => {
@@ -338,5 +352,59 @@ describe("processMessage – contacts", () => {
             messages: HELP_MESSAGES,
         });
         expect(mockReactMessage).toHaveBeenCalledWith(userData.messageKey, "✅");
+    });
+});
+
+describe("processMessage – reminder target and quota", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockReactMessage.mockResolvedValue(true);
+        mockSendMessage.mockResolvedValue(true);
+        mockSendMessages.mockResolvedValue(true);
+        mockFindPendingByInviteMessageId.mockResolvedValue(null);
+        mockFindLatestPendingForInvitee.mockResolvedValue(null);
+        mockCheckRateLimit.mockResolvedValue({
+            allowed: true,
+            remaining: 5,
+            totalUsed: 0,
+            resetIn: 0,
+            isPremium: true,
+        });
+        mockUserFindOne.mockResolvedValue({ isPremium: true });
+        mockReminderCountDocuments.mockResolvedValue(0);
+        mockResolveReminderTarget.mockResolvedValue({ kind: "self" });
+        mockFindUserByAnyPhone.mockResolvedValue(null);
+    });
+
+    it("does not enqueue when Lembre a Maria targets an unknown contact", async () => {
+        mockResolveReminderTarget.mockResolvedValue({ kind: "unknown_name", name: "Maria" });
+
+        await processMessage(
+            conversationPayload("Lembre a Maria amanhã 12h de passear com o cachorro"),
+            userData,
+        );
+
+        expect(mockEnqueueReminder).not.toHaveBeenCalled();
+        expect(mockSendMessage).toHaveBeenCalledWith({
+            phone: userData.phoneNumber,
+            message: expect.stringContaining("Não encontrei Maria"),
+        });
+        expect(mockReactMessage).toHaveBeenCalledWith(userData.messageKey, "❌");
+    });
+
+    it("counts free-tier pending quota by createdBy including legacy rows", async () => {
+        mockUserFindOne.mockResolvedValue({ isPremium: false });
+        mockReminderCountDocuments.mockResolvedValue(0);
+
+        await processMessage(conversationPayload("Me lembre de pão"), userData);
+
+        expect(mockReminderCountDocuments).toHaveBeenCalledWith({
+            status: "pending",
+            $or: [
+                { createdByPhoneNumber: userData.phoneNumber },
+                { createdByPhoneNumber: { $in: [null, ""] }, userPhoneNumber: userData.phoneNumber },
+                { createdByPhoneNumber: { $exists: false }, userPhoneNumber: userData.phoneNumber },
+            ],
+        });
     });
 });

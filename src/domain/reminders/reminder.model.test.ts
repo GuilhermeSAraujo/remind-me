@@ -55,3 +55,26 @@ describe("Reminder model – end condition fields", () => {
         expect(doc.endDate).toEqual(end);
     });
 });
+
+describe("Reminder model – createdByPhoneNumber", () => {
+    it("can be set on a new reminder", () => {
+        const doc = new Reminder({
+            userPhoneNumber: "5511999999999",
+            createdByPhoneNumber: "5511888888888",
+            title: "Test",
+            scheduledTime: new Date(),
+            messageId: "msg1",
+        });
+        expect(doc.createdByPhoneNumber).toBe("5511888888888");
+    });
+
+    it("stays undefined when missing (legacy rows)", () => {
+        const doc = new Reminder({
+            userPhoneNumber: "5511999999999",
+            title: "Test",
+            scheduledTime: new Date(),
+            messageId: "msg1",
+        });
+        expect(doc.createdByPhoneNumber).toBeUndefined();
+    });
+});

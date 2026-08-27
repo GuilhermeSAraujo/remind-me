@@ -2,6 +2,7 @@ import mongoose, { Document, Schema } from "mongoose";
 
 export interface IReminder extends Document {
     userPhoneNumber: string;
+    createdByPhoneNumber?: string;
     title: string;
     scheduledTime: Date;
     messageId: string;
@@ -29,6 +30,9 @@ const ReminderSchema = new Schema<IReminder>(
             type: String,
             ref: "User",
             required: true,
+        },
+        createdByPhoneNumber: {
+            type: String,
         },
         title: {
             type: String,
@@ -92,5 +96,6 @@ const ReminderSchema = new Schema<IReminder>(
 
 ReminderSchema.index({ userPhoneNumber: 1, scheduledTime: 1 });
 ReminderSchema.index({ status: 1, scheduledTime: 1 });
+ReminderSchema.index({ createdByPhoneNumber: 1, status: 1 });
 
 export const Reminder = mongoose.model<IReminder>("Reminder", ReminderSchema);
