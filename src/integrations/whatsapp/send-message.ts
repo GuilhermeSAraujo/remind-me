@@ -8,15 +8,15 @@ export interface SendMessageOptions {
   isNewsletter?: boolean;
 }
 
-export async function sendMessage(
-  options: SendMessageOptions,
-): Promise<boolean> {
+type SendTextResult =
+  | { kind: "error" }
+  | { kind: "response"; ok: boolean; id: string | null };
+
+async function postSendText(options: SendMessageOptions): Promise<SendTextResult> {
   const { message } = options;
 
   try {
-    // Evolution API endpoint for sending text messages
     const endpoint = `${CONFIG.API_BASE_URL}/message/sendText/${CONFIG.SESSION_NAME}`;
-
 
     const response = await fetch(endpoint, {
       method: "POST",
@@ -31,15 +31,39 @@ export async function sendMessage(
       }),
     });
 
-    await response.json();
+    const json = (await response.json()) as {
+      key?: { id?: string };
+      data?: { key?: { id?: string } };
+      keyId?: string;
+    };
 
-    return true;
+    const id = json.key?.id ?? json.data?.key?.id ?? json.keyId ?? null;
+
+    return { kind: "response", ok: response.ok, id };
   } catch (error) {
     console.error("[SEND MESSAGE] 🚨 Unexpected ERROR:", {
       error: error instanceof Error ? error.message : String(error),
       phone: options.phone,
       message: options.message.substring(0, 50) + "...",
     });
-    return false;
+    return { kind: "error" };
   }
+}
+
+export async function sendMessage(
+  options: SendMessageOptions,
+): Promise<boolean> {
+  const result = await postSendText(options);
+  // Missing id (and even !response.ok) still counts as success for legacy callers.
+  return result.kind !== "error";
+}
+
+export async function sendMessageGetId(
+  options: SendMessageOptions,
+): Promise<string | null> {
+  const result = await postSendText(options);
+  if (result.kind === "error" || !result.ok || !result.id) {
+    return null;
+  }
+  return result.id;
 }
