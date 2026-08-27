@@ -1,9 +1,11 @@
 import { Context, Next } from "hono";
-import type { MessagePayload, UserData } from "../../integrations/whatsapp/types";
-// import qrcode from "qrcode-terminal";
 import { UserService } from "../../domain/users/user.service";
-// import { env } from "../../config/env";
-// import { resolvePhoneNumber } from "../../integrations/whatsapp/resolve-phone";
+import type { MessagePayload, UserData } from "../../integrations/whatsapp/types";
+import {
+    inboundLidJid,
+    isProcessableInbound,
+    resolveWebhookPhone,
+} from "../../integrations/whatsapp/webhook-identity";
 
 export type { UserData };
 
@@ -16,26 +18,21 @@ export async function extractUserData(c: Context, next: Next) {
   try {
     c.set("messageBody", payload);
 
-    const isGroup = data?.key?.remoteJid?.includes("@g.us") === true;
-    const isConversation =
-      data?.messageType === "conversation" && Boolean(data.message?.conversation);
-    const isReaction =
-      data?.messageType === "reactionMessage" && Boolean(data.message?.reactionMessage);
-
-    if (payload.event === "messages.upsert" && !isGroup && (isConversation || isReaction)) {
-      const phoneNumber = data.key.remoteJid
-
-      // Fallbacks para o nome quando o contato não está salvo
-      const userName = data.pushName || phoneNumber; // Último recurso: usar o próprio número como nome
-
-      const user = await userService.findOrCreateUser(phoneNumber, userName);
+    if (isProcessableInbound(payload)) {
+      const phoneNumber = resolveWebhookPhone(data);
+      const userName = data.pushName || phoneNumber;
+      const user = await userService.findOrCreateUser(
+        phoneNumber,
+        userName,
+        inboundLidJid(data),
+      );
 
       const userData: UserData = {
         phoneNumber: user.phoneNumber,
         name: user.name,
         messageId: data.key.id,
         messageKey: {
-          remoteJid: data.key.remoteJid,
+          remoteJid: phoneNumber,
           fromMe: data.key.fromMe,
           id: data.key.id,
         },
@@ -44,6 +41,7 @@ export async function extractUserData(c: Context, next: Next) {
       c.set("userData", userData);
 
       await next();
+      return;
     }
 
     console.info("Message skipped")

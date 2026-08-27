@@ -1,21 +1,16 @@
 import { Contact, IContact } from "./contact.model";
-import { digitsOnly, normalizeBrazilPhone, phonesMatch } from "./phone";
-
-/** Digits for Contact lookups: Brazil-normalize when possible, else strip non-digits. */
-function contactDigits(phone: string): string {
-    return normalizeBrazilPhone(phone) ?? digitsOnly(phone);
-}
+import { brazilianPhoneVariants, phonesMatch } from "./phone";
 
 export async function findRelationship(
     phoneA: string,
     phoneB: string,
 ): Promise<IContact | null> {
-    const a = contactDigits(phoneA);
-    const b = contactDigits(phoneB);
+    const a = brazilianPhoneVariants(phoneA);
+    const b = brazilianPhoneVariants(phoneB);
     return Contact.findOne({
         $or: [
-            { inviterPhoneNumber: a, inviteePhoneNumber: b },
-            { inviterPhoneNumber: b, inviteePhoneNumber: a },
+            { inviterPhoneNumber: { $in: a }, inviteePhoneNumber: { $in: b } },
+            { inviterPhoneNumber: { $in: b }, inviteePhoneNumber: { $in: a } },
         ],
     });
 }
@@ -25,15 +20,18 @@ export async function nicknameTaken(
     nickname: string,
     exceptOtherPhone?: string,
 ): Promise<boolean> {
-    const viewerDigits = contactDigits(viewerPhone);
+    const viewerVariants = brazilianPhoneVariants(viewerPhone);
     const needle = nickname.trim().toLowerCase();
     const contacts = await Contact.find({
         status: { $in: ["pending", "accepted"] },
-        $or: [{ inviterPhoneNumber: viewerDigits }, { inviteePhoneNumber: viewerDigits }],
+        $or: [
+            { inviterPhoneNumber: { $in: viewerVariants } },
+            { inviteePhoneNumber: { $in: viewerVariants } },
+        ],
     });
 
     for (const contact of contacts) {
-        const viewerIsInviter = phonesMatch(contact.inviterPhoneNumber, viewerDigits);
+        const viewerIsInviter = phonesMatch(contact.inviterPhoneNumber, viewerPhone);
         const otherPhone = viewerIsInviter
             ? contact.inviteePhoneNumber
             : contact.inviterPhoneNumber;
@@ -59,15 +57,18 @@ export type AcceptedContact = { nickname: string; otherPhoneDigits: string };
 export async function findAcceptedContactsForUser(
     phone: string,
 ): Promise<AcceptedContact[]> {
-    const digits = contactDigits(phone);
+    const variants = brazilianPhoneVariants(phone);
     const contacts = await Contact.find({
         status: "accepted",
-        $or: [{ inviterPhoneNumber: digits }, { inviteePhoneNumber: digits }],
+        $or: [
+            { inviterPhoneNumber: { $in: variants } },
+            { inviteePhoneNumber: { $in: variants } },
+        ],
     });
 
     const result: AcceptedContact[] = [];
     for (const contact of contacts) {
-        const viewerIsInviter = phonesMatch(contact.inviterPhoneNumber, digits);
+        const viewerIsInviter = phonesMatch(contact.inviterPhoneNumber, phone);
         const nickname = viewerIsInviter
             ? contact.inviterNicknameForInvitee
             : contact.inviteeNicknameForInviter;
@@ -92,8 +93,7 @@ export async function nicknameForOther(
     if (!relationship) {
         return null;
     }
-    const viewerDigits = contactDigits(viewerPhone);
-    if (phonesMatch(relationship.inviterPhoneNumber, viewerDigits)) {
+    if (phonesMatch(relationship.inviterPhoneNumber, viewerPhone)) {
         return relationship.inviterNicknameForInvitee;
     }
     return relationship.inviteeNicknameForInviter;
@@ -103,10 +103,17 @@ export async function findPendingByInviteMessageId(
     inviteePhone: string,
     inviteMessageId: string,
 ): Promise<IContact | null> {
+    const byPhone = await Contact.findOne({
+        inviteMessageId,
+        status: "pending",
+        inviteePhoneNumber: { $in: brazilianPhoneVariants(inviteePhone) },
+    });
+    if (byPhone) {
+        return byPhone;
+    }
     return Contact.findOne({
         inviteMessageId,
         status: "pending",
-        inviteePhoneNumber: contactDigits(inviteePhone),
     });
 }
 
@@ -114,7 +121,7 @@ export async function findLatestPendingForInvitee(
     inviteePhone: string,
 ): Promise<IContact | null> {
     return Contact.findOne({
-        inviteePhoneNumber: contactDigits(inviteePhone),
+        inviteePhoneNumber: { $in: brazilianPhoneVariants(inviteePhone) },
         status: "pending",
     }).sort({ updatedAt: -1 });
 }

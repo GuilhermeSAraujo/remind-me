@@ -64,7 +64,7 @@ describe("registerContact", () => {
         mockSendMessage.mockResolvedValue(true);
         mockFindRelationship.mockResolvedValue(null);
         mockNicknameTaken.mockResolvedValue(false);
-        mockSendMessageGetId.mockResolvedValue("wamid.invite");
+        mockSendMessageGetId.mockResolvedValue({ id: "wamid.invite", remoteJid: null });
         mockCreate.mockResolvedValue({});
     });
 
@@ -114,6 +114,39 @@ describe("registerContact", () => {
             }),
         );
         expect(mockSendMessage.mock.calls[0]![0].message).toContain("Convite enviado para Victor");
+    });
+
+    it("stores Evolution resolved invitee digits when send returns a phone JID", async () => {
+        mockSendMessageGetId.mockResolvedValue({
+            id: "wamid.invite",
+            remoteJid: "553198296801@s.whatsapp.net",
+        });
+        await registerContact({
+            userData: isabela,
+            message: "Cadastrar pessoa (31)998296801 Victor",
+        });
+        expect(mockCreate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                inviteePhoneNumber: "553198296801",
+                inviteMessageId: "wamid.invite",
+            }),
+        );
+    });
+
+    it("keeps cadastrar digits when Evolution returns a LID JID", async () => {
+        mockSendMessageGetId.mockResolvedValue({
+            id: "wamid.invite",
+            remoteJid: "140393070978714@lid",
+        });
+        await registerContact({
+            userData: isabela,
+            message: "Cadastrar pessoa (31)999999999 Victor",
+        });
+        expect(mockCreate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                inviteePhoneNumber: "5531999999999",
+            }),
+        );
     });
 
     it("reports already pending when viewer is inviter", async () => {

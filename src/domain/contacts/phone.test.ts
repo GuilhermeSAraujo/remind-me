@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+    brazilianPhoneVariants,
     digitsOnly,
     normalizeBrazilPhone,
     phonesMatch,
@@ -38,13 +39,31 @@ describe("phonesMatch", () => {
         expect(phonesMatch("5531999999999", "5531999999999@s.whatsapp.net")).toBe(true);
         expect(phonesMatch("5531999999999", "5531888888888")).toBe(false);
     });
+
+    it("matches Brazil mobile numbers with and without the ninth digit", () => {
+        expect(phonesMatch("5531998296801", "553198296801@s.whatsapp.net")).toBe(true);
+        expect(phonesMatch("553198296801", "5531998296801")).toBe(true);
+    });
+});
+
+describe("brazilianPhoneVariants", () => {
+    it("includes the form with and without the ninth digit after DDD", () => {
+        expect(brazilianPhoneVariants("5531998296801")).toEqual(
+            expect.arrayContaining(["5531998296801", "553198296801"]),
+        );
+        expect(brazilianPhoneVariants("553198296801@s.whatsapp.net")).toEqual(
+            expect.arrayContaining(["553198296801", "5531998296801"]),
+        );
+    });
 });
 
 describe("userPhoneVariants", () => {
     it("returns digits and s.whatsapp.net JID", () => {
-        expect(userPhoneVariants("5531999999999")).toEqual([
-            "5531999999999",
-            "5531999999999@s.whatsapp.net",
-        ]);
+        expect(userPhoneVariants("5531999999999")).toEqual(
+            expect.arrayContaining([
+                "5531999999999",
+                "5531999999999@s.whatsapp.net",
+            ]),
+        );
     });
 });

@@ -3,26 +3,30 @@ export interface MessageSender {
   name?: string; // Pode ser undefined quando o contato não está salvo
 }
 
+export interface MessageKeyFields {
+  remoteJid: string;
+  fromMe: boolean;
+  id: string;
+  remoteJidAlt?: string;
+  senderPn?: string;
+}
+
 export interface MessagePayload {
   event: "messages.upsert";
   data: {
-    key: {
-      // user "id" from whatsapp
-      remoteJid: string;
-      fromMe: boolean;
-      // message id
-      id: string
-    },
+    key: MessageKeyFields;
     pushName: string;
     status: string;
+    senderPn?: string;
     message: {
       conversation?: string;
+      extendedTextMessage?: { text?: string };
       reactionMessage?: {
         key: { remoteJid: string; fromMe: boolean; id: string };
         text: string;
       };
     }
-    messageType: 'conversation' | 'reactionMessage';
+    messageType: "conversation" | "extendedTextMessage" | "reactionMessage";
     contextInfo?: {
       // answered message id
       stanzaId: string;

@@ -14,6 +14,7 @@ vi.mock("./contact.model", () => ({
 import {
     findRelationship,
     findLatestPendingForInvitee,
+    findPendingByInviteMessageId,
     nicknameForOther,
     findAcceptedContactsForUser,
 } from "./queries";
@@ -21,6 +22,9 @@ import {
 describe("contact queries", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        mockFindOne.mockReset();
+        mockFind.mockReset();
+        mockSort.mockReset();
         mockFindOne.mockReturnValue({ sort: mockSort });
     });
 
@@ -29,8 +33,14 @@ describe("contact queries", () => {
         await findRelationship("5531111111111@s.whatsapp.net", "(31)99999-9999");
         expect(mockFindOne).toHaveBeenCalledWith({
             $or: [
-                { inviterPhoneNumber: "5531111111111", inviteePhoneNumber: "5531999999999" },
-                { inviterPhoneNumber: "5531999999999", inviteePhoneNumber: "5531111111111" },
+                {
+                    inviterPhoneNumber: { $in: expect.arrayContaining(["5531111111111"]) },
+                    inviteePhoneNumber: { $in: expect.arrayContaining(["5531999999999"]) },
+                },
+                {
+                    inviterPhoneNumber: { $in: expect.arrayContaining(["5531999999999"]) },
+                    inviteePhoneNumber: { $in: expect.arrayContaining(["5531111111111"]) },
+                },
             ],
         });
     });
@@ -39,10 +49,40 @@ describe("contact queries", () => {
         mockSort.mockResolvedValue({ inviteMessageId: "latest" });
         await findLatestPendingForInvitee("5531999999999@s.whatsapp.net");
         expect(mockFindOne).toHaveBeenCalledWith({
-            inviteePhoneNumber: "5531999999999",
+            inviteePhoneNumber: { $in: expect.arrayContaining(["5531999999999"]) },
             status: "pending",
         });
         expect(mockSort).toHaveBeenCalledWith({ updatedAt: -1 });
+    });
+
+    it("findLatestPendingForInvitee matches ninth-digit WhatsApp JIDs", async () => {
+        mockSort.mockResolvedValue({ inviteMessageId: "latest" });
+        await findLatestPendingForInvitee("553198296801@s.whatsapp.net");
+        expect(mockFindOne).toHaveBeenCalledWith({
+            inviteePhoneNumber: {
+                $in: expect.arrayContaining(["553198296801", "5531998296801"]),
+            },
+            status: "pending",
+        });
+    });
+
+    it("findPendingByInviteMessageId falls back to id-only when phone misses", async () => {
+        const contact = { inviteMessageId: "wamid.invite", status: "pending" };
+        mockFindOne.mockResolvedValueOnce(null).mockResolvedValueOnce(contact);
+
+        await expect(
+            findPendingByInviteMessageId("140393070978714@lid", "wamid.invite"),
+        ).resolves.toBe(contact);
+
+        expect(mockFindOne).toHaveBeenNthCalledWith(1, {
+            inviteMessageId: "wamid.invite",
+            status: "pending",
+            inviteePhoneNumber: { $in: expect.any(Array) },
+        });
+        expect(mockFindOne).toHaveBeenNthCalledWith(2, {
+            inviteMessageId: "wamid.invite",
+            status: "pending",
+        });
     });
 
     it("nicknameForOther returns inviter nickname when viewer is invitee", async () => {

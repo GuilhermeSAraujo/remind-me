@@ -10,7 +10,9 @@ export interface SendMessageOptions {
 
 type SendTextResult =
   | { kind: "error" }
-  | { kind: "response"; ok: boolean; id: string | null };
+  | { kind: "response"; ok: boolean; id: string | null; remoteJid: string | null };
+
+export type SendMessageIdResult = { id: string; remoteJid: string | null };
 
 async function postSendText(options: SendMessageOptions): Promise<SendTextResult> {
   const { message } = options;
@@ -32,14 +34,15 @@ async function postSendText(options: SendMessageOptions): Promise<SendTextResult
     });
 
     const json = (await response.json()) as {
-      key?: { id?: string };
-      data?: { key?: { id?: string } };
+      key?: { id?: string; remoteJid?: string };
+      data?: { key?: { id?: string; remoteJid?: string } };
       keyId?: string;
     };
 
     const id = json.key?.id ?? json.data?.key?.id ?? json.keyId ?? null;
+    const remoteJid = json.key?.remoteJid ?? json.data?.key?.remoteJid ?? null;
 
-    return { kind: "response", ok: response.ok, id };
+    return { kind: "response", ok: response.ok, id, remoteJid };
   } catch (error) {
     console.error("[SEND MESSAGE] 🚨 Unexpected ERROR:", {
       error: error instanceof Error ? error.message : String(error),
@@ -60,10 +63,10 @@ export async function sendMessage(
 
 export async function sendMessageGetId(
   options: SendMessageOptions,
-): Promise<string | null> {
+): Promise<SendMessageIdResult | null> {
   const result = await postSendText(options);
   if (result.kind === "error" || !result.ok || !result.id) {
     return null;
   }
-  return result.id;
+  return { id: result.id, remoteJid: result.remoteJid };
 }

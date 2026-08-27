@@ -329,6 +329,56 @@ describe("processMessage – contacts", () => {
         expect(mockReactMessage).toHaveBeenCalledWith(userData.messageKey, "✅");
     });
 
+    it("falls back to the latest pending invite when quoted stanzaId is not an invite", async () => {
+        const contact = pendingContact();
+        mockFindPendingByInviteMessageId.mockResolvedValue(null);
+        mockFindLatestPendingForInvitee.mockResolvedValue(contact);
+
+        await processMessage(conversationPayload("sim", "wamid.unrelated"), userData);
+
+        expect(mockFindPendingByInviteMessageId).toHaveBeenCalledWith(
+            userData.phoneNumber,
+            "wamid.unrelated",
+        );
+        expect(mockFindLatestPendingForInvitee).toHaveBeenCalledWith(userData.phoneNumber);
+        expect(mockApplyInviteDecision).toHaveBeenCalledWith({
+            userData,
+            contact,
+            decision: "yes",
+        });
+        expect(mockSendMessages).not.toHaveBeenCalled();
+    });
+
+    it("applies sim from an extendedTextMessage against the latest pending invite", async () => {
+        const contact = pendingContact();
+        mockFindLatestPendingForInvitee.mockResolvedValue(contact);
+
+        await processMessage(
+            {
+                event: "messages.upsert",
+                data: {
+                    key: {
+                        remoteJid: userData.messageKey.remoteJid,
+                        fromMe: false,
+                        id: userData.messageId,
+                    },
+                    pushName: userData.name,
+                    status: "DELIVERY_ACK",
+                    message: { extendedTextMessage: { text: "sim" } },
+                    messageType: "extendedTextMessage",
+                },
+            },
+            userData,
+        );
+
+        expect(mockFindLatestPendingForInvitee).toHaveBeenCalledWith(userData.phoneNumber);
+        expect(mockApplyInviteDecision).toHaveBeenCalledWith({
+            userData,
+            contact,
+            decision: "yes",
+        });
+    });
+
     it("does not treat 'sim, me lembre de pão' as an invite reply", async () => {
         mockFindLatestPendingForInvitee.mockResolvedValue(pendingContact());
 

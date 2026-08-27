@@ -23,6 +23,7 @@ import { enqueueReminder } from "./reminder-queue";
 import { reactMessage } from "./react-message";
 import { sendMessage } from "./send-message";
 import { sendMessages } from "./send-messages";
+import { inboundMessageText } from "./webhook-identity";
 import type { MessagePayload, UserData } from "./types";
 
 function inviteReactionEmoji(decision: "yes" | "no" | "unknown"): "✅" | "❌" {
@@ -47,7 +48,7 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
 
     await reactMessage(userData.messageKey, "⏳");
 
-    const message = body.data.message.conversation?.trim() ?? "";
+    const message = inboundMessageText(body.data);
     if (message.length > 250) {
         console.log("[PROCESSOR] ⚠ Message too long:", message.length);
         await sendMessage({
@@ -62,7 +63,8 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
     if (inviteDecision) {
         const quotedId = body.data.contextInfo?.stanzaId;
         const contact = quotedId
-            ? await findPendingByInviteMessageId(userData.phoneNumber, quotedId)
+            ? (await findPendingByInviteMessageId(userData.phoneNumber, quotedId))
+                ?? (await findLatestPendingForInvitee(userData.phoneNumber))
             : await findLatestPendingForInvitee(userData.phoneNumber);
         if (contact) {
             await applyInviteDecision({ userData, contact, decision: inviteDecision });

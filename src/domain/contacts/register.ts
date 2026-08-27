@@ -12,7 +12,7 @@ import {
     cadastroSendFailedMessage,
     inviteToInviteeMessage,
 } from "./messages";
-import { normalizeBrazilPhone, phonesMatch } from "./phone";
+import { contactDigits, normalizeBrazilPhone, phonesMatch } from "./phone";
 import { findRelationship, nicknameTaken } from "./queries";
 
 export function parseRegisterContact(
@@ -104,36 +104,45 @@ export async function registerContact(params: {
         return;
     }
 
-    const inviteMessageId = await sendMessageGetId({
+    const sent = await sendMessageGetId({
         phone: inviteeDigits,
         message: inviteToInviteeMessage(userData.name),
     });
 
-    if (!inviteMessageId) {
+    if (!sent) {
         await replyToInviter(inviterPhone, cadastroSendFailedMessage());
         return;
     }
 
+    const storedInviteeDigits = inviteeDigitsFromSend(inviteeDigits, sent.remoteJid);
     const rejected = existing?.status === "rejected" ? existing : null;
     if (rejected) {
         await reopenRejectedContact(rejected, {
             inviterDigits,
-            inviteeDigits,
+            inviteeDigits: storedInviteeDigits,
             name: parsed.name,
-            inviteMessageId,
+            inviteMessageId: sent.id,
         });
     } else {
         await Contact.create({
             inviterPhoneNumber: inviterDigits,
-            inviteePhoneNumber: inviteeDigits,
+            inviteePhoneNumber: storedInviteeDigits,
             inviterNicknameForInvitee: parsed.name,
             inviteeNicknameForInviter: null,
             status: "pending",
-            inviteMessageId,
+            inviteMessageId: sent.id,
         });
     }
 
     await replyToInviter(inviterPhone, cadastroInviteSentMessage(parsed.name));
+}
+
+function inviteeDigitsFromSend(cadastrarDigits: string, remoteJid: string | null): string {
+    if (!remoteJid || remoteJid.includes("@lid")) {
+        return cadastrarDigits;
+    }
+    const resolved = contactDigits(remoteJid);
+    return resolved || cadastrarDigits;
 }
 
 async function reopenRejectedContact(

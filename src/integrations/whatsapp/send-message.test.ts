@@ -35,17 +35,36 @@ describe("sendMessageGetId", () => {
 
     it("returns key.id", async () => {
         jsonResponse({ key: { id: "wamid.key" } });
-        await expect(sendMessageGetId(options)).resolves.toBe("wamid.key");
+        await expect(sendMessageGetId(options)).resolves.toEqual({
+            id: "wamid.key",
+            remoteJid: null,
+        });
     });
 
     it("returns data.key.id", async () => {
         jsonResponse({ data: { key: { id: "wamid.nested" } } });
-        await expect(sendMessageGetId(options)).resolves.toBe("wamid.nested");
+        await expect(sendMessageGetId(options)).resolves.toEqual({
+            id: "wamid.nested",
+            remoteJid: null,
+        });
     });
 
     it("returns keyId", async () => {
         jsonResponse({ keyId: "wamid.flat" });
-        await expect(sendMessageGetId(options)).resolves.toBe("wamid.flat");
+        await expect(sendMessageGetId(options)).resolves.toEqual({
+            id: "wamid.flat",
+            remoteJid: null,
+        });
+    });
+
+    it("returns remoteJid from the Evolution key", async () => {
+        jsonResponse({
+            key: { id: "wamid.key", remoteJid: "553198296801@s.whatsapp.net" },
+        });
+        await expect(sendMessageGetId(options)).resolves.toEqual({
+            id: "wamid.key",
+            remoteJid: "553198296801@s.whatsapp.net",
+        });
     });
 
     it("returns null when response is not ok", async () => {
