@@ -66,11 +66,24 @@ describe("classifyInviteText", () => {
         expect(classifyInviteText("Me lembre de comprar pão")).toBeNull();
         expect(classifyInviteText("sim, me lembre de x")).toBeNull();
     });
+
+    it("accepts the same yes/no emojis as a whole-message reply", () => {
+        expect(classifyInviteText("👍")).toBe("yes");
+        expect(classifyInviteText("👍🏻")).toBe("yes");
+        expect(classifyInviteText(" 👍 ")).toBe("yes");
+        expect(classifyInviteText("✅")).toBe("yes");
+        expect(classifyInviteText("❤️")).toBe("yes");
+        expect(classifyInviteText("👎")).toBe("no");
+        expect(classifyInviteText("👎️")).toBe("no");
+        expect(classifyInviteText("😂")).toBeNull();
+        expect(classifyInviteText("👍 ok")).toBeNull();
+    });
 });
 
 describe("classifyInviteReaction", () => {
     it("maps known emojis", () => {
         expect(classifyInviteReaction("👍")).toBe("yes");
+        expect(classifyInviteReaction("👍🏻")).toBe("yes");
         expect(classifyInviteReaction("👎")).toBe("no");
         expect(classifyInviteReaction("😂")).toBe("unknown");
     });

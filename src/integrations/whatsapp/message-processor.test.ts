@@ -294,6 +294,22 @@ describe("processMessage – contacts", () => {
         expect(mockReactMessage).toHaveBeenCalledWith(userData.messageKey, "✅");
     });
 
+    it("applies a 👍 message against the latest pending invite", async () => {
+        const contact = pendingContact();
+        mockFindLatestPendingForInvitee.mockResolvedValue(contact);
+
+        await processMessage(conversationPayload("👍"), userData);
+
+        expect(mockFindLatestPendingForInvitee).toHaveBeenCalledWith(userData.phoneNumber);
+        expect(mockApplyInviteDecision).toHaveBeenCalledWith({
+            userData,
+            contact,
+            decision: "yes",
+        });
+        expect(mockRegisterContact).not.toHaveBeenCalled();
+        expect(mockReactMessage).toHaveBeenCalledWith(userData.messageKey, "✅");
+    });
+
     it("applies sim against the quoted pending invite message", async () => {
         const contact = pendingContact();
         mockFindPendingByInviteMessageId.mockResolvedValue(contact);

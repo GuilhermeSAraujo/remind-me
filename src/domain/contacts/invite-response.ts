@@ -31,22 +31,32 @@ function stripAccents(value: string): string {
     return value.normalize("NFD").replace(/\p{M}/gu, "");
 }
 
+function normalizeInviteEmoji(emoji: string): string {
+    return emoji
+        .trim()
+        .replace(/\uFE0E|\uFE0F/g, "")
+        .replace(/[\u{1F3FB}-\u{1F3FF}]/gu, "");
+}
+
 export function classifyInviteText(message: string): "yes" | "no" | null {
-    const normalized = stripAccents(message.trim().toLowerCase());
+    const trimmed = message.trim();
+    const normalized = stripAccents(trimmed.toLowerCase());
     if (YES_TEXT.has(normalized)) {
         return "yes";
     }
     if (NO_TEXT.has(normalized)) {
         return "no";
     }
-    return null;
+    const asEmoji = classifyInviteReaction(trimmed);
+    return asEmoji === "unknown" ? null : asEmoji;
 }
 
 export function classifyInviteReaction(emoji: string): "yes" | "no" | "unknown" {
-    if (YES_REACTIONS.has(emoji)) {
+    const normalized = normalizeInviteEmoji(emoji);
+    if (YES_REACTIONS.has(normalized)) {
         return "yes";
     }
-    if (NO_REACTIONS.has(emoji)) {
+    if (NO_REACTIONS.has(normalized)) {
         return "no";
     }
     return "unknown";
