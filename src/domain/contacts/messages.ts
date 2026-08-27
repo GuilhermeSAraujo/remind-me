@@ -86,3 +86,7 @@ export function reminderCreatedForYouMessage(
 ): string {
     return `${creatorName} criou um lembrete para você: *${title}* — ${when}\nEle é seu: você pode apagar ou adiar. Envie listar para ver.`;
 }
+
+export function reminderExtractFailedForContactMessage(nickname: string): string {
+    return `Não consegui criar o lembrete para ${nickname}. Tente de novo com data e hora claras.\nExemplo: Lembre o ${nickname} amanhã às 10h de…\nEnvie listar para ver seus lembretes.\nEnvie Contatos para ver seus contatos.`;
+}

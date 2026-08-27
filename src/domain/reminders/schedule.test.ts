@@ -241,7 +241,7 @@ describe("scheduleReminder – createdBy and contact target", () => {
         expect(extractPrompt).not.toMatch(/Isabela/);
     });
 
-    it("does not notify when extract returns no reminders", async () => {
+    it("tells the scheduler when extract returns no reminders and does not notify the owner", async () => {
         mockGenerateContent.mockResolvedValue("[]");
 
         await scheduleReminder({
@@ -261,7 +261,40 @@ describe("scheduleReminder – createdBy and contact target", () => {
         });
 
         expect(mockReminderCreate).not.toHaveBeenCalled();
-        expect(mockSendReply).not.toHaveBeenCalled();
+        expect(mockSendReply).toHaveBeenCalledTimes(1);
+        const reply = mockSendReply.mock.calls[0]![0]!;
+        expect(reply.phone).toBe("5511999999999");
+        expect(reply.message).toContain("Não consegui criar o lembrete para Isabela");
+        expect(reply.message).toContain("Envie listar");
+        expect(reply.message).toContain("Envie Contatos");
+        expect(mockSendMessage).not.toHaveBeenCalled();
+        expect(mockReactMessage).toHaveBeenCalledWith(sampleMessageKey, "❌");
+    });
+
+    it("tells the scheduler when extraction throws for a contact target", async () => {
+        mockGenerateContent.mockRejectedValue(new Error("AI down"));
+
+        await scheduleReminder({
+            userData: {
+                phoneNumber: "5511999999999",
+                messageId: "wamid.SAMPLE",
+                name: "Victor",
+                messageKey: sampleMessageKey,
+            },
+            message: "Lembre a Isabela amanhã 12h de passear com o cachorro",
+            messageId: "wamid.SAMPLE",
+            target: {
+                ownerPhoneNumber: "5511888888888",
+                ownerNickname: "Isabela",
+                creatorDisplayName: "Victor",
+            },
+        });
+
+        expect(mockReminderCreate).not.toHaveBeenCalled();
+        expect(mockSendReply).toHaveBeenCalledTimes(1);
+        const reply = mockSendReply.mock.calls[0]![0]!;
+        expect(reply.message).toContain("Não consegui criar o lembrete para Isabela");
+        expect(reply.message).toContain("Envie listar");
         expect(mockSendMessage).not.toHaveBeenCalled();
         expect(mockReactMessage).toHaveBeenCalledWith(sampleMessageKey, "❌");
     });

@@ -23,6 +23,7 @@ import { stripContactTarget } from "../contacts/resolve-reminder-target";
 import {
     reminderCreatedForOtherSuffix,
     reminderCreatedForYouMessage,
+    reminderExtractFailedForContactMessage,
 } from "../contacts/messages";
 
 const MESSAGE_AI_TEMPORARY_ERROR =
@@ -60,6 +61,13 @@ export async function scheduleReminder({
         const remindersData = await extractReminderData(extractMessage, userData.phoneNumber, onRetry);
 
         if (remindersData.length === 0) {
+            if (target) {
+                await sendReply({
+                    phone: userData.phoneNumber,
+                    messageId: userData.messageId,
+                    message: reminderExtractFailedForContactMessage(target.ownerNickname),
+                });
+            }
             await reactMessage(userData.messageKey, "❌");
             return;
         }
@@ -124,6 +132,13 @@ export async function scheduleReminder({
         await reactMessage(userData.messageKey, "✅");
     } catch (error) {
         console.error("[SCHEDULE REMINDER] Failed:", error);
+        if (target) {
+            await sendReply({
+                phone: userData.phoneNumber,
+                messageId: userData.messageId,
+                message: reminderExtractFailedForContactMessage(target.ownerNickname),
+            });
+        }
         await reactMessage(userData.messageKey, "❌");
     }
 }
