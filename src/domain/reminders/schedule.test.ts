@@ -342,7 +342,12 @@ describe("scheduleReminder – createdBy and contact target", () => {
         expect(reply.message).toContain("Alguns podem ter sido criados");
         expect(reply.message).toContain("Envie listar");
         expect(reply.message).not.toContain("Não consegui criar o lembrete para Isabela");
-        expect(mockSendMessage).not.toHaveBeenCalled();
+        expect(mockSendMessage).toHaveBeenCalledTimes(1);
+        const ownerNote = mockSendMessage.mock.calls[0]![0]!;
+        expect(ownerNote.phone).toBe("5511888888888");
+        expect(ownerNote.message).toContain("criou um lembrete para você");
+        expect(ownerNote.message).toContain("Passear com o cachorro");
+        expect(ownerNote.message).not.toContain("Tomar remédio");
         expect(mockReactMessage).toHaveBeenCalledWith(sampleMessageKey, "❌");
     });
 });

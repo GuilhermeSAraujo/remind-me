@@ -49,6 +49,7 @@ export async function scheduleReminder({
     target?: ScheduleReminderTarget;
 }) {
     let createdCount = 0;
+    const createdRemindersData: ReminderData[] = [];
     try {
         const onRetry = () => {
             void sendReply({
@@ -107,6 +108,7 @@ export async function scheduleReminder({
                 sentCount: 0,
             });
             createdCount++;
+            createdRemindersData.push(reminderData);
         }
 
         // Formatar mensagem de sucesso
@@ -145,6 +147,12 @@ export async function scheduleReminder({
                 messageId: userData.messageId,
                 message,
             });
+            if (createdRemindersData.length > 0) {
+                await sendMessage({
+                    phone: target.ownerPhoneNumber,
+                    message: formatOwnerCreatedMessage(target.creatorDisplayName, createdRemindersData),
+                });
+            }
         } else if (createdCount > 0) {
             await sendReply({
                 phone: userData.phoneNumber,
