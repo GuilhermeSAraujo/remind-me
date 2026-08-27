@@ -63,6 +63,11 @@ describe("classifyInviteText", () => {
         expect(classifyInviteText("sim")).toBe("yes");
         expect(classifyInviteText("nao")).toBe("no");
         expect(classifyInviteText("não")).toBe("no");
+        expect(classifyInviteText("aceitar")).toBe("yes");
+        expect(classifyInviteText("aceito")).toBe("yes");
+        expect(classifyInviteText("Aceitar")).toBe("yes");
+        expect(classifyInviteText("recusar")).toBe("no");
+        expect(classifyInviteText("recuso")).toBe("no");
         expect(classifyInviteText("Me lembre de comprar pão")).toBeNull();
         expect(classifyInviteText("sim, me lembre de x")).toBeNull();
     });
