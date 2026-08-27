@@ -35,7 +35,7 @@ export function resolveReminderTargetFromContacts(
 
     for (const contact of sorted) {
         const nick = contact.nickname;
-        const prefixRe = new RegExp(`^${escapeRegExp(nick)}(?:\\b|$)`, "i");
+        const prefixRe = new RegExp(`^${escapeRegExp(nick)}(?=\\s|$)`, "i");
         if (prefixRe.test(nameRemainder)) {
             return {
                 kind: "contact",
@@ -63,7 +63,7 @@ export async function resolveReminderTarget(
 
 export function stripContactTarget(message: string, nickname: string): string {
     const re = new RegExp(
-        `((?:lembr(?:e|ar|a)|agend(?:e|a)|cri(?:e|a)|lembrete))\\s+(?:a|o|à|ao|pra|para\\s+a|para\\s+o)\\s+${escapeRegExp(nickname)}\\b`,
+        `((?:lembr(?:e|ar|a)|agend(?:e|a)|cri(?:e|a)|lembrete))\\s+(?:a|o|à|ao|pra|para\\s+a|para\\s+o)\\s+${escapeRegExp(nickname)}(?=\\s|$)`,
         "i",
     );
     return message.replace(re, "$1");

@@ -34,6 +34,17 @@ describe("resolveReminderTargetFromContacts", () => {
             resolveReminderTargetFromContacts("Lembre a Maria amanhã 10h de x", contacts),
         ).toEqual({ kind: "unknown_name", name: "Maria" });
     });
+
+    it("resolves accented nicknames when more text follows", () => {
+        const joseContacts = [{ nickname: "José", otherPhoneDigits: "5532222222222" }];
+        expect(
+            resolveReminderTargetFromContacts("Lembre a José amanhã 10h de x", joseContacts),
+        ).toEqual({
+            kind: "contact",
+            nickname: "José",
+            ownerPhoneDigits: "5532222222222",
+        });
+    });
 });
 
 describe("stripContactTarget", () => {
