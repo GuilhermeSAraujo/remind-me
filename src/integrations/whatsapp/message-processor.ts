@@ -1,3 +1,7 @@
+import { applyInviteDecision, classifyInviteReaction, classifyInviteText } from "../../domain/contacts/invite-response";
+import { listContacts } from "../../domain/contacts/list";
+import { findLatestPendingForInvitee, findPendingByInviteMessageId } from "../../domain/contacts/queries";
+import { registerContact } from "../../domain/contacts/register";
 import { deleteReminder } from "../../domain/reminders/delete";
 import { listReminders } from "../../domain/reminders/list";
 import { Reminder } from "../../domain/reminders/reminder.model";
@@ -15,10 +19,29 @@ import { sendMessage } from "./send-message";
 import { sendMessages } from "./send-messages";
 import type { MessagePayload, UserData } from "./types";
 
+function inviteReactionEmoji(decision: "yes" | "no" | "unknown"): "✅" | "❌" {
+    return decision === "no" ? "❌" : "✅";
+}
+
 export async function processMessage(body: MessagePayload, userData: UserData) {
+    const reactionMessage = body.data.message.reactionMessage;
+    if (reactionMessage) {
+        const contact = await findPendingByInviteMessageId(
+            userData.phoneNumber,
+            reactionMessage.key.id,
+        );
+        if (!contact) {
+            return;
+        }
+        const decision = classifyInviteReaction(reactionMessage.text);
+        await applyInviteDecision({ userData, contact, decision });
+        await reactMessage(userData.messageKey, inviteReactionEmoji(decision));
+        return;
+    }
+
     await reactMessage(userData.messageKey, "⏳");
 
-    const message = body.data?.message.conversation.trim();
+    const message = body.data.message.conversation?.trim() ?? "";
     if (message.length > 250) {
         console.log("[PROCESSOR] ⚠ Message too long:", message.length);
         await sendMessage({
@@ -27,6 +50,19 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
         });
         await reactMessage(userData.messageKey, "❌");
         return;
+    }
+
+    const inviteDecision = classifyInviteText(message);
+    if (inviteDecision) {
+        const quotedId = body.data.contextInfo?.stanzaId;
+        const contact = quotedId
+            ? await findPendingByInviteMessageId(userData.phoneNumber, quotedId)
+            : await findLatestPendingForInvitee(userData.phoneNumber);
+        if (contact) {
+            await applyInviteDecision({ userData, contact, decision: inviteDecision });
+            await reactMessage(userData.messageKey, inviteReactionEmoji(inviteDecision));
+            return;
+        }
     }
 
     // Detect message intent using pattern matching (No AI)
@@ -65,6 +101,16 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
         }
 
         switch (messageIntent) {
+            case "register_contact":
+                await registerContact({ userData, message });
+                await reactMessage(userData.messageKey, "✅");
+                break;
+
+            case "list_contacts":
+                await listContacts({ userData });
+                await reactMessage(userData.messageKey, "✅");
+                break;
+
             case "reminder": {
                 // Check if free user has reached the 5 pending reminders limit
                 const user = await User.findOne({ phoneNumber: userData.phoneNumber });

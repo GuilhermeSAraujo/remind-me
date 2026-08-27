@@ -16,7 +16,13 @@ export async function extractUserData(c: Context, next: Next) {
   try {
     c.set("messageBody", payload);
 
-    if (payload.event === "messages.upsert" && data?.message?.conversation && data.messageType === 'conversation' && !data.key.remoteJid.includes("@g.us")) {
+    const isGroup = data?.key?.remoteJid?.includes("@g.us") === true;
+    const isConversation =
+      data?.messageType === "conversation" && Boolean(data.message?.conversation);
+    const isReaction =
+      data?.messageType === "reactionMessage" && Boolean(data.message?.reactionMessage);
+
+    if (payload.event === "messages.upsert" && !isGroup && (isConversation || isReaction)) {
       const phoneNumber = data.key.remoteJid
 
       // Fallbacks para o nome quando o contato não está salvo

@@ -16,7 +16,11 @@ export interface MessagePayload {
     pushName: string;
     status: string;
     message: {
-      conversation: string;
+      conversation?: string;
+      reactionMessage?: {
+        key: { remoteJid: string; fromMe: boolean; id: string };
+        text: string;
+      };
     }
     messageType: 'conversation' | 'reactionMessage';
     contextInfo?: {
