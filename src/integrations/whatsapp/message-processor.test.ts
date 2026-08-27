@@ -116,6 +116,7 @@ vi.mock("../../domain/users/find-user-by-phone", () => ({
 }));
 
 import { processMessage } from "./message-processor";
+import { scheduleReminder } from "../../domain/reminders/schedule";
 
 const userData: UserData = {
     phoneNumber: "5531999999999",
@@ -388,6 +389,58 @@ describe("processMessage – reminder target and quota", () => {
         expect(mockSendMessage).toHaveBeenCalledWith({
             phone: userData.phoneNumber,
             message: expect.stringContaining("Não encontrei Maria"),
+        });
+        expect(mockReactMessage).toHaveBeenCalledWith(userData.messageKey, "❌");
+    });
+
+    it("enqueues scheduleReminder with target when contact owner User exists", async () => {
+        mockResolveReminderTarget.mockResolvedValue({
+            kind: "contact",
+            nickname: "Isabela",
+            ownerPhoneDigits: "5511888888888",
+        });
+        mockFindUserByAnyPhone.mockResolvedValue({ phoneNumber: "5511888888888" });
+
+        const message = "Lembre a Isabela amanhã 12h de passear com o cachorro";
+        await processMessage(conversationPayload(message), userData);
+
+        expect(mockFindUserByAnyPhone).toHaveBeenCalledWith("5511888888888");
+        expect(mockEnqueueReminder).toHaveBeenCalledOnce();
+        const queued = mockEnqueueReminder.mock.calls[0]![0] as () => Promise<void>;
+        await queued();
+
+        expect(scheduleReminder).toHaveBeenCalledWith({
+            userData,
+            message,
+            messageId: userData.messageId,
+            target: {
+                ownerPhoneNumber: "5511888888888",
+                ownerNickname: "Isabela",
+                creatorDisplayName: "Victor",
+            },
+        });
+        expect(mockSendMessage).not.toHaveBeenCalled();
+        expect(mockReactMessage).not.toHaveBeenCalledWith(userData.messageKey, "❌");
+    });
+
+    it("rejects contact target when owner User is missing", async () => {
+        mockResolveReminderTarget.mockResolvedValue({
+            kind: "contact",
+            nickname: "Isabela",
+            ownerPhoneDigits: "5511888888888",
+        });
+        mockFindUserByAnyPhone.mockResolvedValue(null);
+
+        await processMessage(
+            conversationPayload("Lembre a Isabela amanhã 12h de passear com o cachorro"),
+            userData,
+        );
+
+        expect(mockFindUserByAnyPhone).toHaveBeenCalledWith("5511888888888");
+        expect(mockEnqueueReminder).not.toHaveBeenCalled();
+        expect(mockSendMessage).toHaveBeenCalledWith({
+            phone: userData.phoneNumber,
+            message: expect.stringContaining("ainda não conversou"),
         });
         expect(mockReactMessage).toHaveBeenCalledWith(userData.messageKey, "❌");
     });

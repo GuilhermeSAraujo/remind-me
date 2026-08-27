@@ -10,7 +10,7 @@ import { resolveReminderTarget } from "../../domain/contacts/resolve-reminder-ta
 import { deleteReminder } from "../../domain/reminders/delete";
 import { listReminders } from "../../domain/reminders/list";
 import { Reminder } from "../../domain/reminders/reminder.model";
-import { scheduleReminder } from "../../domain/reminders/schedule";
+import { scheduleReminder, type ScheduleReminderTarget } from "../../domain/reminders/schedule";
 import { findUserByAnyPhone } from "../../domain/users/find-user-by-phone";
 import { delayReminder } from "../../domain/reminders/delay";
 import { User } from "../../domain/users/user.model";
@@ -163,7 +163,7 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                     await reactMessage(userData.messageKey, "❌");
                     break;
                 }
-                let scheduleTarget: { ownerPhoneNumber: string; ownerNickname: string; creatorDisplayName: string } | undefined;
+                let scheduleTarget: ScheduleReminderTarget | undefined;
                 if (target.kind === "contact") {
                     const owner = await findUserByAnyPhone(target.ownerPhoneDigits);
                     if (!owner) {

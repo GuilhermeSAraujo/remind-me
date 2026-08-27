@@ -236,6 +236,34 @@ describe("scheduleReminder – createdBy and contact target", () => {
         const ownerNote = mockSendMessage.mock.calls[0]![0]!;
         expect(ownerNote.phone).toBe("5511888888888");
         expect(ownerNote.message).toContain("criou um lembrete para você");
+
+        const extractPrompt = mockGenerateContent.mock.calls[0]![1] as string;
+        expect(extractPrompt).not.toMatch(/Isabela/);
+    });
+
+    it("does not notify when extract returns no reminders", async () => {
+        mockGenerateContent.mockResolvedValue("[]");
+
+        await scheduleReminder({
+            userData: {
+                phoneNumber: "5511999999999",
+                messageId: "wamid.SAMPLE",
+                name: "Victor",
+                messageKey: sampleMessageKey,
+            },
+            message: "Lembre a Isabela amanhã 12h de passear com o cachorro",
+            messageId: "wamid.SAMPLE",
+            target: {
+                ownerPhoneNumber: "5511888888888",
+                ownerNickname: "Isabela",
+                creatorDisplayName: "Victor",
+            },
+        });
+
+        expect(mockReminderCreate).not.toHaveBeenCalled();
+        expect(mockSendReply).not.toHaveBeenCalled();
+        expect(mockSendMessage).not.toHaveBeenCalled();
+        expect(mockReactMessage).toHaveBeenCalledWith(sampleMessageKey, "❌");
     });
 });
 

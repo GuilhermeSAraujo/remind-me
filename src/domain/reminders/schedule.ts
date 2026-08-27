@@ -59,6 +59,11 @@ export async function scheduleReminder({
             : message;
         const remindersData = await extractReminderData(extractMessage, userData.phoneNumber, onRetry);
 
+        if (remindersData.length === 0) {
+            await reactMessage(userData.messageKey, "❌");
+            return;
+        }
+
         // Criar todos os lembretes
         for (const reminderData of remindersData) {
             let scheduledTime = parseBrazilDateString(reminderData.date);
