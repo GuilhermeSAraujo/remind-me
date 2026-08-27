@@ -129,7 +129,7 @@ function pendingContact(overrides: Partial<IContact> = {}): IContact {
     } as unknown as IContact;
 }
 
-function conversationPayload(text: string): MessagePayload {
+function conversationPayload(text: string, stanzaId?: string): MessagePayload {
     return {
         event: "messages.upsert",
         data: {
@@ -142,6 +142,9 @@ function conversationPayload(text: string): MessagePayload {
             status: "DELIVERY_ACK",
             message: { conversation: text },
             messageType: "conversation",
+            ...(stanzaId
+                ? { contextInfo: { stanzaId, quotedMessage: {} } }
+                : {}),
         },
     };
 }
@@ -228,6 +231,36 @@ describe("processMessage – contacts", () => {
         expect(mockReactMessage).not.toHaveBeenCalled();
     });
 
+    it("applies unknown decision for an unrecognized emoji on a pending invite", async () => {
+        const contact = pendingContact();
+        mockFindPendingByInviteMessageId.mockResolvedValue(contact);
+
+        await processMessage(reactionPayload("😂", "wamid.invite"), userData);
+
+        expect(mockApplyInviteDecision).toHaveBeenCalledWith({
+            userData,
+            contact,
+            decision: "unknown",
+        });
+        expect(mockSendMessage).not.toHaveBeenCalled();
+        expect(mockReactMessage).toHaveBeenCalledWith(userData.messageKey, "✅");
+    });
+
+    it("applies a 👎 reaction on a pending invite and reacts with ❌", async () => {
+        const contact = pendingContact();
+        mockFindPendingByInviteMessageId.mockResolvedValue(contact);
+
+        await processMessage(reactionPayload("👎", "wamid.invite"), userData);
+
+        expect(mockApplyInviteDecision).toHaveBeenCalledWith({
+            userData,
+            contact,
+            decision: "no",
+        });
+        expect(mockSendMessage).not.toHaveBeenCalled();
+        expect(mockReactMessage).toHaveBeenCalledWith(userData.messageKey, "❌");
+    });
+
     it("applies sim against the latest pending invite", async () => {
         const contact = pendingContact();
         mockFindLatestPendingForInvitee.mockResolvedValue(contact);
@@ -243,6 +276,25 @@ describe("processMessage – contacts", () => {
         expect(mockRegisterContact).not.toHaveBeenCalled();
         expect(mockSendMessages).not.toHaveBeenCalled();
         expect(mockReactMessage).toHaveBeenCalledWith(userData.messageKey, "⏳");
+        expect(mockReactMessage).toHaveBeenCalledWith(userData.messageKey, "✅");
+    });
+
+    it("applies sim against the quoted pending invite message", async () => {
+        const contact = pendingContact();
+        mockFindPendingByInviteMessageId.mockResolvedValue(contact);
+
+        await processMessage(conversationPayload("sim", "wamid.invite"), userData);
+
+        expect(mockFindPendingByInviteMessageId).toHaveBeenCalledWith(
+            userData.phoneNumber,
+            "wamid.invite",
+        );
+        expect(mockFindLatestPendingForInvitee).not.toHaveBeenCalled();
+        expect(mockApplyInviteDecision).toHaveBeenCalledWith({
+            userData,
+            contact,
+            decision: "yes",
+        });
         expect(mockReactMessage).toHaveBeenCalledWith(userData.messageKey, "✅");
     });
 
