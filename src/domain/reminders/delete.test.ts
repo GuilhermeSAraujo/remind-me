@@ -32,7 +32,7 @@ describe("deleteReminder – apagar N uses owned list only", () => {
     it("deletes only the owned reminder at index N; created-for-others are not in getRemindersInListOrder", async () => {
         const owned = {
             _id: "owned-1",
-            userPhoneNumber: "5511999999999",
+            userPhoneNumber: "5511999999999@s.whatsapp.net",
             createdByPhoneNumber: "5511999999999",
             title: "Meu lembrete",
             scheduledTime: new Date("2026-03-10T08:00:00-03:00"),
@@ -53,7 +53,12 @@ describe("deleteReminder – apagar N uses owned list only", () => {
         await expect(mockGetRemindersInListOrder.mock.results[0]!.value).resolves.toEqual([owned]);
         expect(mockDeleteOne).toHaveBeenCalledWith({
             _id: "owned-1",
-            userPhoneNumber: "5511999999999",
+            userPhoneNumber: {
+                $in: expect.arrayContaining([
+                    "5511999999999",
+                    "5511999999999@s.whatsapp.net",
+                ]),
+            },
         });
         expect(mockSendMessage).toHaveBeenCalledWith(
             expect.objectContaining({

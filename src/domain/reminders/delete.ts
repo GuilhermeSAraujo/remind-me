@@ -1,5 +1,6 @@
 import { UserData } from "../../api/middlewares/user-extractor.middleware";
 import { sendMessage } from "../../integrations/whatsapp/send-message";
+import { phoneVariantFilter } from "../contacts/phone";
 import { Reminder } from "./reminder.model";
 import { getRemindersInListOrder } from "./reminders-list-order.helper";
 
@@ -60,7 +61,10 @@ export async function deleteReminder({
         return false;
     }
     console.log("[DELETE REMINDER] ⚠ Reminder found?:", reminder);
-    await Reminder.deleteOne({ _id: reminder._id, userPhoneNumber: userData.phoneNumber });
+    await Reminder.deleteOne({
+        _id: reminder._id,
+        userPhoneNumber: phoneVariantFilter(userData.phoneNumber),
+    });
 
     await sendMessage({
         phone: userData.phoneNumber,

@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockFindOne, mockCreate } = vi.hoisted(() => ({
+const { mockFind, mockFindOne, mockCreate } = vi.hoisted(() => ({
+    mockFind: vi.fn(),
     mockFindOne: vi.fn(),
     mockCreate: vi.fn(),
 }));
 
 vi.mock("./user.model", () => ({
-    User: { findOne: mockFindOne, create: mockCreate },
+    User: { find: mockFind, findOne: mockFindOne, create: mockCreate },
 }));
 
 vi.mock("../../integrations/whatsapp/send-message", () => ({
@@ -23,10 +24,12 @@ describe("UserService.findOrCreateUser", () => {
     });
 
     it("finds an existing user by digit and JID variants", async () => {
-        mockFindOne.mockResolvedValueOnce({
-            phoneNumber: "553198296801@s.whatsapp.net",
-            name: "Victor",
-        });
+        mockFind.mockResolvedValueOnce([
+            {
+                phoneNumber: "553198296801@s.whatsapp.net",
+                name: "Victor",
+            },
+        ]);
 
         const user = await service.findOrCreateUser(
             "553198296801@s.whatsapp.net",
@@ -34,7 +37,7 @@ describe("UserService.findOrCreateUser", () => {
         );
 
         expect(mockCreate).not.toHaveBeenCalled();
-        expect(mockFindOne).toHaveBeenCalledWith({
+        expect(mockFind).toHaveBeenCalledWith({
             phoneNumber: {
                 $in: expect.arrayContaining([
                     "553198296801",
@@ -45,15 +48,28 @@ describe("UserService.findOrCreateUser", () => {
         expect(user.phoneNumber).toBe("553198296801@s.whatsapp.net");
     });
 
+    it("returns the bare-digit user when a JID duplicate also matches", async () => {
+        const digits = { phoneNumber: "553198296801", name: "Victor" };
+        const jid = { phoneNumber: "553198296801@s.whatsapp.net", name: "Lembretes" };
+        mockFind.mockResolvedValueOnce([jid, digits]);
+
+        const user = await service.findOrCreateUser(
+            "553198296801@s.whatsapp.net",
+            "Victor",
+        );
+
+        expect(user).toBe(digits);
+        expect(mockCreate).not.toHaveBeenCalled();
+    });
+
     it("migrates a LID user to the resolved phone number", async () => {
         const save = vi.fn().mockResolvedValue(undefined);
-        mockFindOne
-            .mockResolvedValueOnce(null)
-            .mockResolvedValueOnce({
-                phoneNumber: "140393070978714@lid",
-                name: "Victor",
-                save,
-            });
+        mockFind.mockResolvedValueOnce([]);
+        mockFindOne.mockResolvedValueOnce({
+            phoneNumber: "140393070978714@lid",
+            name: "Victor",
+            save,
+        });
 
         const user = await service.findOrCreateUser(
             "553198296801@s.whatsapp.net",

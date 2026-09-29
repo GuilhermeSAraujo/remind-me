@@ -1,5 +1,5 @@
 import { sendMessage } from "../../integrations/whatsapp/send-message";
-import { phoneLookupKeys } from "../contacts/phone";
+import { phoneLookupKeys, preferBareDigitUser } from "../contacts/phone";
 import { IUser, User } from "./user.model";
 
 export class UserService {
@@ -13,9 +13,10 @@ export class UserService {
     name: string,
     lidJid?: string,
   ): Promise<IUser> {
-    let user = await User.findOne({
+    const matches = await User.find({
       phoneNumber: { $in: phoneLookupKeys(phoneNumber) },
     });
+    let user = preferBareDigitUser(matches);
 
     if (!user && lidJid) {
       user = await User.findOne({ phoneNumber: lidJid });

@@ -1,3 +1,4 @@
+import { phoneVariantFilter } from "../contacts/phone";
 import { Reminder } from "./reminder.model";
 
 /**
@@ -6,7 +7,7 @@ import { Reminder } from "./reminder.model";
  */
 export async function getRemindersInListOrder(userPhoneNumber: string) {
     return Reminder.find({
-        userPhoneNumber,
+        userPhoneNumber: phoneVariantFilter(userPhoneNumber),
         status: "pending",
     }).sort({ scheduledTime: 1 });
 }
@@ -15,9 +16,10 @@ export async function getRemindersInListOrder(userPhoneNumber: string) {
  * Lembretes que o usuário criou para outras pessoas (somente leitura na listagem).
  */
 export async function getRemindersCreatedForOthers(creatorPhoneNumber: string) {
+    const variants = phoneVariantFilter(creatorPhoneNumber);
     return Reminder.find({
-        createdByPhoneNumber: creatorPhoneNumber,
-        userPhoneNumber: { $ne: creatorPhoneNumber },
+        createdByPhoneNumber: variants,
+        userPhoneNumber: { $nin: variants.$in },
         status: "pending",
     }).sort({ scheduledTime: 1 });
 }

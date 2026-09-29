@@ -6,6 +6,7 @@ import {
 } from "../../domain/contacts/messages";
 import { findLatestPendingForInvitee, findPendingByInviteMessageId } from "../../domain/contacts/queries";
 import { registerContact } from "../../domain/contacts/register";
+import { phoneVariantFilter } from "../../domain/contacts/phone";
 import { resolveReminderTarget } from "../../domain/contacts/resolve-reminder-target";
 import { deleteReminder } from "../../domain/reminders/delete";
 import { listReminders } from "../../domain/reminders/list";
@@ -124,12 +125,13 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                 const user = await User.findOne({ phoneNumber: userData.phoneNumber });
 
                 if (!user?.isPremium) {
+                    const phoneVariants = phoneVariantFilter(userData.phoneNumber);
                     const pendingRemindersCount = await Reminder.countDocuments({
                         status: "pending",
                         $or: [
-                            { createdByPhoneNumber: userData.phoneNumber },
-                            { createdByPhoneNumber: { $in: [null, ""] }, userPhoneNumber: userData.phoneNumber },
-                            { createdByPhoneNumber: { $exists: false }, userPhoneNumber: userData.phoneNumber },
+                            { createdByPhoneNumber: phoneVariants },
+                            { createdByPhoneNumber: { $in: [null, ""] }, userPhoneNumber: phoneVariants },
+                            { createdByPhoneNumber: { $exists: false }, userPhoneNumber: phoneVariants },
                         ],
                     });
 

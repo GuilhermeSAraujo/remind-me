@@ -4,6 +4,7 @@ import {
     digitsOnly,
     normalizeBrazilPhone,
     phonesMatch,
+    preferBareDigitUser,
     userPhoneVariants,
 } from "./phone";
 
@@ -54,6 +55,24 @@ describe("brazilianPhoneVariants", () => {
         expect(brazilianPhoneVariants("553198296801@s.whatsapp.net")).toEqual(
             expect.arrayContaining(["553198296801", "5531998296801"]),
         );
+    });
+});
+
+describe("preferBareDigitUser", () => {
+    it("prefers the bare-digit user when a WhatsApp JID row is also present", () => {
+        const jid = { phoneNumber: "5511999999999@s.whatsapp.net", name: "JID" };
+        const digits = { phoneNumber: "5511999999999", name: "Digits" };
+
+        expect(preferBareDigitUser([jid, digits])).toBe(digits);
+    });
+
+    it("keeps a JID-only user", () => {
+        const jid = { phoneNumber: "5511999999999@s.whatsapp.net" };
+        expect(preferBareDigitUser([jid])).toBe(jid);
+    });
+
+    it("returns null when there are no matches", () => {
+        expect(preferBareDigitUser([])).toBeNull();
     });
 });
 

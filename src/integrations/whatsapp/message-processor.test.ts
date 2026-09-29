@@ -520,9 +520,9 @@ describe("processMessage – reminder target and quota", () => {
         expect(mockReminderCountDocuments).toHaveBeenCalledWith({
             status: "pending",
             $or: [
-                { createdByPhoneNumber: userData.phoneNumber },
-                { createdByPhoneNumber: { $in: [null, ""] }, userPhoneNumber: userData.phoneNumber },
-                { createdByPhoneNumber: { $exists: false }, userPhoneNumber: userData.phoneNumber },
+                { createdByPhoneNumber: { $in: expect.arrayContaining([userData.phoneNumber, `${userData.phoneNumber}@s.whatsapp.net`]) } },
+                { createdByPhoneNumber: { $in: [null, ""] }, userPhoneNumber: { $in: expect.arrayContaining([userData.phoneNumber, `${userData.phoneNumber}@s.whatsapp.net`]) } },
+                { createdByPhoneNumber: { $exists: false }, userPhoneNumber: { $in: expect.arrayContaining([userData.phoneNumber, `${userData.phoneNumber}@s.whatsapp.net`]) } },
             ],
         });
     });

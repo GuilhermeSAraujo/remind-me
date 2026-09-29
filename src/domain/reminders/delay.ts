@@ -13,6 +13,7 @@ import {
     truncateToMinute,
 } from "../../shared/utils/date.utils";
 import { stripReminderPrefix } from "../../shared/utils/reminder-prefix.utils";
+import { phoneVariantFilter } from "../contacts/phone";
 import { Reminder } from "./reminder.model";
 
 async function extractDelayFromMessage(
@@ -57,7 +58,7 @@ export async function delayReminder({
 
     const title = stripReminderPrefix(whatsappMessage.text);
     const reminder = await Reminder.findOne({
-        userPhoneNumber: userData.phoneNumber,
+        userPhoneNumber: phoneVariantFilter(userData.phoneNumber),
         title,
     }).sort({ updatedAt: -1 });
 

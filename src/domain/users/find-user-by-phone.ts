@@ -1,4 +1,4 @@
-import { userPhoneVariants, digitsOnly } from "../contacts/phone";
+import { userPhoneVariants, digitsOnly, preferBareDigitUser } from "../contacts/phone";
 import { IUser, User } from "./user.model";
 
 export async function findUserByAnyPhone(phone: string): Promise<IUser | null> {
@@ -6,5 +6,6 @@ export async function findUserByAnyPhone(phone: string): Promise<IUser | null> {
     if (!digits) {
         return null;
     }
-    return User.findOne({ phoneNumber: { $in: userPhoneVariants(digits) } });
+    const matches = await User.find({ phoneNumber: { $in: userPhoneVariants(digits) } });
+    return preferBareDigitUser(matches);
 }

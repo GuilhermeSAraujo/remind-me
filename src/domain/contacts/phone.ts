@@ -66,3 +66,19 @@ export function userPhoneVariants(phone: string): string[] {
 export function phoneLookupKeys(phone: string): string[] {
     return userPhoneVariants(phone);
 }
+
+export function phoneVariantFilter(phone: string): { $in: string[] } {
+    return { $in: userPhoneVariants(phone) };
+}
+
+function isBareDigitPhone(phone: string): boolean {
+    return /^\d+$/.test(phone);
+}
+
+/** When digit and `@s.whatsapp.net` rows both match, keep the bare-digit user. */
+export function preferBareDigitUser<T extends { phoneNumber: string }>(users: T[]): T | null {
+    if (users.length === 0) {
+        return null;
+    }
+    return users.find((user) => isBareDigitPhone(user.phoneNumber)) ?? users[0]!;
+}
