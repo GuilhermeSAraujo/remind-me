@@ -1,13 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { mockGenerateContent, mockSendReply, mockSendMessage, mockReminderCreate, mockReactMessage } =
-    vi.hoisted(() => ({
-        mockGenerateContent: vi.fn(),
-        mockSendReply: vi.fn(),
-        mockSendMessage: vi.fn(),
-        mockReminderCreate: vi.fn(),
-        mockReactMessage: vi.fn(),
-    }));
+const {
+    mockGenerateContent,
+    mockSendReply,
+    mockSendMessage,
+    mockReminderCreate,
+    mockReactMessage,
+    mockCheckReminderCreationLimit,
+    mockRecordReminderCreation,
+} = vi.hoisted(() => ({
+    mockGenerateContent: vi.fn(),
+    mockSendReply: vi.fn(),
+    mockSendMessage: vi.fn(),
+    mockReminderCreate: vi.fn(),
+    mockReactMessage: vi.fn(),
+    mockCheckReminderCreationLimit: vi.fn(),
+    mockRecordReminderCreation: vi.fn(),
+}));
 
 vi.mock("../../integrations/ai/gemini-client", () => ({
     generateContentWithContext: mockGenerateContent,
@@ -32,6 +41,11 @@ vi.mock("./reminder.model", () => ({
     },
 }));
 
+vi.mock("../../services/rate-limiter.service", () => ({
+    checkReminderCreationLimit: mockCheckReminderCreationLimit,
+    recordReminderCreation: mockRecordReminderCreation,
+}));
+
 import { scheduleReminder } from "./schedule";
 
 const sampleMessageKey = {
@@ -47,6 +61,13 @@ describe("scheduleReminder – confirmation messages with end date and max occur
         mockSendReply.mockResolvedValue(true);
         mockSendMessage.mockResolvedValue(true);
         mockReactMessage.mockResolvedValue(true);
+        mockCheckReminderCreationLimit.mockResolvedValue({
+            allowed: true,
+            remaining: 3,
+            resetIn: 0,
+            isPremium: false,
+        });
+        mockRecordReminderCreation.mockResolvedValue(undefined);
     });
 
     it("includes end date and max occurrences in single reminder confirmation", async () => {
@@ -158,6 +179,13 @@ describe("scheduleReminder – createdBy and contact target", () => {
         mockSendReply.mockResolvedValue(true);
         mockSendMessage.mockResolvedValue(true);
         mockReactMessage.mockResolvedValue(true);
+        mockCheckReminderCreationLimit.mockResolvedValue({
+            allowed: true,
+            remaining: 3,
+            resetIn: 0,
+            isPremium: false,
+        });
+        mockRecordReminderCreation.mockResolvedValue(undefined);
     });
 
     it("sets createdByPhoneNumber equal to the owner for self reminders", async () => {
@@ -349,6 +377,53 @@ describe("scheduleReminder – createdBy and contact target", () => {
         expect(ownerNote.message).toContain("Passear com o cachorro");
         expect(ownerNote.message).not.toContain("Tomar remédio");
         expect(mockReactMessage).toHaveBeenCalledWith(sampleMessageKey, "❌");
+    });
+
+    it("saves only as many reminders as the daily quota allows", async () => {
+        mockCheckReminderCreationLimit.mockResolvedValue({
+            allowed: true,
+            remaining: 1,
+            resetIn: 2 * 60 * 60 * 1000,
+            isPremium: false,
+        });
+        mockGenerateContent.mockResolvedValue(
+            JSON.stringify([
+                {
+                    title: "passear com o cachorro",
+                    date: "2026-03-10 12:00",
+                    recurrence_type: "none",
+                    recurrence_interval: 0,
+                },
+                {
+                    title: "tomar remédio",
+                    date: "2026-03-10 20:00",
+                    recurrence_type: "none",
+                    recurrence_interval: 0,
+                },
+            ]),
+        );
+
+        await scheduleReminder({
+            userData: {
+                phoneNumber: "5511999999999",
+                messageId: "wamid.SAMPLE",
+                name: "Victor",
+                messageKey: sampleMessageKey,
+            },
+            message: "Me lembre de passear e de tomar remédio",
+            messageId: "wamid.SAMPLE",
+        });
+
+        expect(mockReminderCreate).toHaveBeenCalledTimes(1);
+        expect(mockReminderCreate).toHaveBeenCalledWith(
+            expect.objectContaining({ title: "Passear com o cachorro" }),
+        );
+        expect(mockRecordReminderCreation).toHaveBeenCalledTimes(1);
+        expect(mockRecordReminderCreation).toHaveBeenCalledWith("5511999999999");
+        const reply = mockSendReply.mock.calls[0]![0]!;
+        expect(reply.message).toContain("Lembrete criado");
+        expect(reply.message).toContain("1 lembrete não foi criado");
+        expect(mockReactMessage).toHaveBeenCalledWith(sampleMessageKey, "✅");
     });
 });
 

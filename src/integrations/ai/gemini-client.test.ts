@@ -8,10 +8,6 @@ vi.mock("../../config/env", () => ({
   env: { GOOGLE_API_KEY: "test-key" },
 }));
 
-vi.mock("../../services/rate-limiter.service", () => ({
-  recordAIUsage: vi.fn().mockResolvedValue(undefined),
-}));
-
 vi.mock("@google/generative-ai", () => ({
   GoogleGenerativeAI: class MockGoogleGenerativeAI {
     getGenerativeModel() {
@@ -25,15 +21,6 @@ vi.mock("@google/generative-ai", () => ({
 }));
 
 import { clearChatSession, generateContentWithContext } from "./gemini-client";
-import { PROMPT_CLASSIFY_MESSAGE_INTENT } from "./gemini-constants";
-
-describe("PROMPT_CLASSIFY_MESSAGE_INTENT", () => {
-  it("includes register_contact and list_contacts intents", () => {
-    const prompt = PROMPT_CLASSIFY_MESSAGE_INTENT("x");
-    expect(prompt).toContain("register_contact");
-    expect(prompt).toContain("list_contacts");
-  });
-});
 
 describe("generateContentWithContext", () => {
   beforeEach(() => {
@@ -56,7 +43,6 @@ describe("generateContentWithContext", () => {
     const result = await generateContentWithContext(
       "user1",
       "test prompt",
-      "extract",
       onRetry
     );
 
@@ -79,7 +65,6 @@ describe("generateContentWithContext", () => {
     const result = await generateContentWithContext(
       "user1",
       "test",
-      "extract",
       onRetry
     );
 
@@ -98,7 +83,7 @@ describe("generateContentWithContext", () => {
       const onRetry = vi.fn().mockResolvedValue(undefined);
 
       await expect(
-        generateContentWithContext("user1", "test", "extract", onRetry)
+        generateContentWithContext("user1", "test", onRetry)
       ).rejects.toThrow("503");
 
       expect(onRetry).toHaveBeenCalledTimes(1);
@@ -112,7 +97,7 @@ describe("generateContentWithContext", () => {
     const onRetry = vi.fn();
 
     await expect(
-      generateContentWithContext("user1", "test", undefined, onRetry)
+      generateContentWithContext("user1", "test", onRetry)
     ).rejects.toThrow("auth failed");
 
     expect(onRetry).not.toHaveBeenCalled();

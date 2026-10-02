@@ -1,0 +1,2 @@
+export const FREE_REMINDERS_PER_24H = 3;
+export const REMINDER_QUOTA_WINDOW_HOURS = 24;

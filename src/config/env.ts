@@ -8,6 +8,7 @@ export const env = createEnv({
         SECRET_KEY: z.string().min(1),
         MONGODB_URI: z.url(),
         GOOGLE_API_KEY: z.string().min(1),
+        TYPESAFE_API_KEY: z.string().min(1),
         EVOLUTION_API_URL: z.url().default("http://evolution-api:3333"),
         AUTHENTICATION_API_KEY: z.string().min(1),
         LOCAL_TEST_MODE: z

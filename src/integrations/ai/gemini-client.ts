@@ -1,8 +1,6 @@
 import { GoogleGenerativeAI, ChatSession } from "@google/generative-ai";
 import { env } from "../../config/env";
 import { DEFAULT_AI_MODEL } from "./gemini-constants";
-import { recordAIUsage } from "../../services/rate-limiter.service";
-import { AIOperationType } from "../../shared/types/ai.types";
 
 const genAI = new GoogleGenerativeAI(env.GOOGLE_API_KEY);
 
@@ -60,15 +58,9 @@ export function getChatSession(userId: string): ChatSession {
   return session;
 }
 
-export interface AIResponse {
-  text: string;
-  tokensUsed: number;
-}
-
 export async function generateContentWithContext(
   userId: string,
   prompt: string,
-  operation?: AIOperationType,
   onRetry?: (attempt: number) => void | Promise<void>
 ): Promise<string> {
   let lastError: unknown;
@@ -76,14 +68,6 @@ export async function generateContentWithContext(
     try {
       const session = getChatSession(userId);
       const result = await session.sendMessage(prompt);
-
-      const usageMetadata = result.response.usageMetadata;
-      const totalTokens = usageMetadata?.totalTokenCount || 0;
-
-      if (operation) {
-        await recordAIUsage(userId, operation, totalTokens);
-        console.info(`[AI] (${userId.slice(-4)}) ${operation}: ${totalTokens} tokens`);
-      }
 
       return result.response.text();
     } catch (error) {

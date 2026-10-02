@@ -24,7 +24,6 @@ async function extractDelayFromMessage(
         let delay = await generateContentWithContext(
             userId,
             PROMPT_IDENTIFY_DELAY(messageText, toBrazilDateTimeString(new Date())),
-            "identify_delay",
         );
         delay = delay.replace(/```json/g, "").replace(/```/g, "");
         return JSON.parse(delay)?.newScheduledTime ?? null;

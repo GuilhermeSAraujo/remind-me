@@ -16,6 +16,7 @@ import {
     toBrazilDateTimeString,
     truncateToMinute,
 } from "../../shared/utils/date.utils";
+import { calculateNextScheduledTime } from "./recurrence.utils";
 import { sendReply } from "../../integrations/whatsapp/send-reply";
 import { sendMessage } from "../../integrations/whatsapp/send-message";
 import { reactMessage } from "../../integrations/whatsapp/react-message";
@@ -26,10 +27,14 @@ import {
     reminderExtractFailedForContactMessage,
     reminderPartialCreateFailedMessage,
 } from "../contacts/messages";
+import { RATE_LIMIT_EXCEEDED_MESSAGE, RATE_LIMIT_PARTIAL_MESSAGE } from "../../integrations/whatsapp/constants";
+import {
+    checkReminderCreationLimit,
+    recordReminderCreation,
+} from "../../services/rate-limiter.service";
 
 const MESSAGE_AI_TEMPORARY_ERROR =
     "Ocorreu um erro temporário. Seu lembrete será processado assim que a IA voltar.";
-import { calculateNextScheduledTime } from "./recurrence.utils";
 
 export type ScheduleReminderTarget = {
     ownerPhoneNumber: string;
@@ -75,8 +80,25 @@ export async function scheduleReminder({
             return;
         }
 
-        // Criar todos os lembretes
-        for (const reminderData of remindersData) {
+        const creationLimit = await checkReminderCreationLimit(userData.phoneNumber);
+        const remindersToCreate = creationLimit.remaining < 0
+            ? remindersData
+            : remindersData.slice(0, creationLimit.remaining);
+
+        if (remindersToCreate.length === 0) {
+            const resetInHours = creationLimit.resetIn / (1000 * 60 * 60);
+            await sendReply({
+                phone: userData.phoneNumber,
+                messageId: userData.messageId,
+                message: RATE_LIMIT_EXCEEDED_MESSAGE(resetInHours, userData.phoneNumber),
+            });
+            await reactMessage(userData.messageKey, "❌");
+            return;
+        }
+
+        const skippedCount = remindersData.length - remindersToCreate.length;
+
+        for (const reminderData of remindersToCreate) {
             let scheduledTime = parseBrazilDateString(reminderData.date);
             const now = new Date();
 
@@ -107,19 +129,22 @@ export async function scheduleReminder({
                 endDate: reminderData.end_date ? parseBrazilDateString(reminderData.end_date) : null,
                 sentCount: 0,
             });
+            await recordReminderCreation(userData.phoneNumber);
             createdCount++;
             createdRemindersData.push(reminderData);
         }
 
-        // Formatar mensagem de sucesso
         const successMessage =
-            remindersData.length === 1
-                ? formatReminderCreatedMessage(remindersData[0]!)
-                : formatMultipleRemindersCreatedMessage(remindersData);
+            remindersToCreate.length === 1
+                ? formatReminderCreatedMessage(remindersToCreate[0]!)
+                : formatMultipleRemindersCreatedMessage(remindersToCreate);
 
-        const creatorMessage = target
+        let creatorMessage = target
             ? `${successMessage}${reminderCreatedForOtherSuffix(target.ownerNickname)}`
             : successMessage;
+        if (skippedCount > 0) {
+            creatorMessage = `${creatorMessage}\n\n${RATE_LIMIT_PARTIAL_MESSAGE(skippedCount, userData.phoneNumber)}`;
+        }
 
         await sendReply({
             phone: userData.phoneNumber,
@@ -130,7 +155,7 @@ export async function scheduleReminder({
         if (target) {
             await sendMessage({
                 phone: target.ownerPhoneNumber,
-                message: formatOwnerCreatedMessage(target.creatorDisplayName, remindersData),
+                message: formatOwnerCreatedMessage(target.creatorDisplayName, remindersToCreate),
             });
         }
 
@@ -241,7 +266,6 @@ async function extractReminderData(
             buildBrazilWeekdayDateLookup(now),
             buildBrazilWeekdayPromptExample(now),
         ),
-        "extract",
         onRetry,
     );
     reminderData = reminderData.replace(/```json/g, "").replace(/```/g, "");
@@ -264,7 +288,6 @@ async function extractReminderDataMultiPrompt(
             buildBrazilWeekdayDateLookup(now),
             buildBrazilWeekdayPromptExampleBase(now),
         ),
-        "extract",
         onRetry,
     );
     baseRaw = baseRaw.replace(/```json/g, "").replace(/```/g, "");
@@ -278,7 +301,6 @@ async function extractReminderDataMultiPrompt(
             let recurrenceRaw = await generateContentWithContext(
                 userId,
                 PROMPT_EXTRACT_RECURRENCE(message, base.title, base.date),
-                "extract",
                 onRetry,
             );
             recurrenceRaw = recurrenceRaw.replace(/```json/g, "").replace(/```/g, "");

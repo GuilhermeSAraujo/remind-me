@@ -96,13 +96,11 @@ The bot responds politely to greetings (*"oi"*, *"olá"*) and expressions of tha
 ## Business Model: Freemium
 
 ### Free Tier
-- Maximum **5 pending reminders** at a time.
-- Maximum **5 AI-assisted interactions per 24 hours** (sliding window).
+- Maximum **3 reminders created per 24 hours** (sliding window). Each saved reminder counts, including one created for a contact. Deleting a reminder does not restore a slot. Delays, lists, and failed extracts do not count.
 - New users receive **30 days of free Premium** automatically upon registration.
 
 ### Premium Tier
-- **Unlimited** pending reminders.
-- **Unlimited** AI interactions.
+- **Unlimited** reminder creation.
 - Price: **R$ 4.90 / month**.
 - Activated via a payment link sent by the bot.
 
@@ -115,14 +113,11 @@ The bot responds politely to greetings (*"oi"*, *"olá"*) and expressions of tha
 
 ---
 
-## Intent Detection: Hybrid Approach
+## Intent Detection
 
-To minimize AI costs, intent detection uses two layers:
+Invite replies (an exact yes/no, or a reaction on the invite message) are handled before classification. Every other inbound message is classified by Jev (TypeSafe) with a single Choice over the message text. Confidence below 0.5 is treated as help.
 
-1. **Regex patterns** (fast, free): The first three words of each message are checked against a set of known command patterns (list, delete, delay, help, thanks, greetings). If matched, no AI call is made.
-2. **Gemini AI fallback** (slower, costs tokens): When regex does not match, the message is sent to Gemini to classify the intent. This also handles extracting reminder details (title, date/time, recurrence) from free-form text.
-
-AI usage is tracked per-user with a 24-hour token window stored in MongoDB, enforcing the free-tier limit.
+Creating a reminder and identifying a delay still use Gemini. Classification does not. Free-tier usage is the number of reminders saved in a sliding 24-hour window, stored as timestamps on the user.
 
 ---
 
@@ -135,7 +130,7 @@ AI usage is tracked per-user with a 24-hour token window stored in MongoDB, enfo
 | `name` | String | WhatsApp display name |
 | `isPremium` | Boolean | Whether the user has an active Premium subscription |
 | `premiumExpiresAt` | Date | Expiry date of the Premium period |
-| `aiUsage` | Object | Token usage log for rate limiting |
+| `reminderCreations` | Date[] | Timestamps of reminders this user saved, used for the free-tier daily cap |
 
 ### Reminder
 | Field | Type | Description |
@@ -159,7 +154,7 @@ AI usage is tracked per-user with a 24-hour token window stored in MongoDB, enfo
 | `status` | Enum | `pending`, `accepted`, `rejected` |
 | `inviteMessageId` | String | WhatsApp message ID of the invite sent to the invitee |
 
-One document per inviter → invitee pair. Free-tier pending quota counts against `createdByPhoneNumber` on Reminder.
+One document per inviter → invitee pair. A reminder created for a contact counts toward the creator's daily free-tier quota.
 
 ### PremiumPayment
 | Field | Type | Description |

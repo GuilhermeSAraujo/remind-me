@@ -6,20 +6,16 @@ import {
 } from "../../domain/contacts/messages";
 import { findLatestPendingForInvitee, findPendingByInviteMessageId } from "../../domain/contacts/queries";
 import { registerContact } from "../../domain/contacts/register";
-import { phoneVariantFilter } from "../../domain/contacts/phone";
 import { resolveReminderTarget } from "../../domain/contacts/resolve-reminder-target";
 import { deleteReminder } from "../../domain/reminders/delete";
 import { listReminders } from "../../domain/reminders/list";
-import { Reminder } from "../../domain/reminders/reminder.model";
 import { scheduleReminder, type ScheduleReminderTarget } from "../../domain/reminders/schedule";
 import { findUserByAnyPhone } from "../../domain/users/find-user-by-phone";
 import { delayReminder } from "../../domain/reminders/delay";
-import { User } from "../../domain/users/user.model";
-import { checkRateLimit } from "../../services/rate-limiter.service";
-import { clearChatSession, generateContentWithContext } from "../ai/gemini-client";
-import { PROMPT_CLASSIFY_MESSAGE_INTENT } from "../ai/gemini-constants";
-import { BUY_PREMIUM_MESSAGE, FREE_USER_REMINDER_LIMIT_MESSAGE, HELP_MESSAGES, RATE_LIMIT_EXCEEDED_MESSAGE } from "./constants";
-import { detectMessageIntent, type MessageIntent } from "../../domain/reminders/intent";
+import { checkReminderCreationLimit } from "../../services/rate-limiter.service";
+import { clearChatSession } from "../ai/gemini-client";
+import { classifyMessageIntent } from "../decision-ai/classify-intent";
+import { BUY_PREMIUM_MESSAGE, HELP_MESSAGES, RATE_LIMIT_EXCEEDED_MESSAGE } from "./constants";
 import { enqueueReminder } from "./reminder-queue";
 import { reactMessage } from "./react-message";
 import { sendMessage } from "./send-message";
@@ -74,40 +70,9 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
         }
     }
 
-    // Detect message intent using pattern matching (No AI)
-    let messageIntent = detectMessageIntent(message);
-    console.log("[PROCESSOR] ⚠ Message intent:", messageIntent);
-
-    const shortMessage = message.length <= 3;
-    if (shortMessage && !messageIntent) {
-        messageIntent = "help";
-    }
-
-    if (!messageIntent) {
-        console.log("[PROCESSOR] ⚠ Using AI to classify intent for message:", message.substring(0, 50));
-    }
-
     try {
-        // If intent is not determined by regex, we need to use AI (classify operation)
-        if (!messageIntent) {
-            const rateLimitCheck = await checkRateLimit(userData.phoneNumber, 'classify');
-
-            if (!rateLimitCheck.allowed) {
-                const resetInHours = rateLimitCheck.resetIn / (1000 * 60 * 60);
-                await sendMessage({
-                    phone: userData.phoneNumber,
-                    message: RATE_LIMIT_EXCEEDED_MESSAGE(resetInHours, userData.phoneNumber),
-                });
-                await reactMessage(userData.messageKey, "❌");
-                return;
-            }
-
-            messageIntent = await generateContentWithContext(
-                userData.phoneNumber,
-                PROMPT_CLASSIFY_MESSAGE_INTENT(message),
-                'classify'
-            ) as MessageIntent;
-        }
+        const messageIntent = await classifyMessageIntent(message);
+        console.log("[PROCESSOR] ⚠ Message intent:", messageIntent);
 
         switch (messageIntent) {
             case "register_contact":
@@ -121,35 +86,10 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                 break;
 
             case "reminder": {
-                // Check if free user has reached the 5 pending reminders limit
-                const user = await User.findOne({ phoneNumber: userData.phoneNumber });
+                const creationLimit = await checkReminderCreationLimit(userData.phoneNumber);
 
-                if (!user?.isPremium) {
-                    const phoneVariants = phoneVariantFilter(userData.phoneNumber);
-                    const pendingRemindersCount = await Reminder.countDocuments({
-                        status: "pending",
-                        $or: [
-                            { createdByPhoneNumber: phoneVariants },
-                            { createdByPhoneNumber: { $in: [null, ""] }, userPhoneNumber: phoneVariants },
-                            { createdByPhoneNumber: { $exists: false }, userPhoneNumber: phoneVariants },
-                        ],
-                    });
-
-                    if (pendingRemindersCount >= 5) {
-                        await sendMessage({
-                            phone: userData.phoneNumber,
-                            message: FREE_USER_REMINDER_LIMIT_MESSAGE(userData.phoneNumber),
-                        });
-                        await reactMessage(userData.messageKey, "❌");
-                        return;
-                    }
-                }
-
-                // Check rate limit before creating reminder (uses AI extract)
-                const rateLimitCheck = await checkRateLimit(userData.phoneNumber, 'extract');
-
-                if (!rateLimitCheck.allowed) {
-                    const resetInHours = rateLimitCheck.resetIn / (1000 * 60 * 60);
+                if (!creationLimit.allowed) {
+                    const resetInHours = creationLimit.resetIn / (1000 * 60 * 60);
                     await sendMessage({
                         phone: userData.phoneNumber,
                         message: RATE_LIMIT_EXCEEDED_MESSAGE(resetInHours, userData.phoneNumber),
