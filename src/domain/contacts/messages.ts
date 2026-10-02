@@ -67,7 +67,10 @@ export function contatosListMessage(acceptedLines: string, pendingLines: string)
     return parts.join("\n");
 }
 
-export function reminderUnknownContactMessage(name: string): string {
+export function reminderUnknownContactMessage(name?: string): string {
+    if (!name) {
+        return "Não encontrei essa pessoa nos seus contatos. Envie Contatos para ver a lista ou cadastre com:\nCadastrar pessoa (31)999999999 Nome";
+    }
     return `Não encontrei ${name} nos seus contatos. Envie Contatos para ver a lista ou cadastre com:\nCadastrar pessoa (31)999999999 ${name}`;
 }
 

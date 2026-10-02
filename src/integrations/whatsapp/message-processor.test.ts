@@ -455,6 +455,25 @@ describe("processMessage – reminder target and quota", () => {
         expect(mockReactMessage).toHaveBeenCalledWith(userData.messageKey, "❌");
     });
 
+    it("does not invent a name when the unknown contact has none", async () => {
+        mockResolveReminderTarget.mockResolvedValue({ kind: "unknown_name" });
+
+        await processMessage(
+            conversationPayload("Lembre alguém amanhã 12h de passear com o cachorro"),
+            userData,
+        );
+
+        expect(mockEnqueueReminder).not.toHaveBeenCalled();
+        expect(mockSendMessage).toHaveBeenCalledWith({
+            phone: userData.phoneNumber,
+            message: expect.stringContaining("essa pessoa"),
+        });
+        const sent = mockSendMessage.mock.calls[0]?.[0] as { message: string };
+        expect(sent.message).toContain("Cadastrar pessoa (31)999999999 Nome");
+        expect(sent.message).not.toContain("Cadastrar pessoa (31)999999999 essa pessoa");
+        expect(mockReactMessage).toHaveBeenCalledWith(userData.messageKey, "❌");
+    });
+
     it("enqueues scheduleReminder with target when contact owner User exists", async () => {
         mockResolveReminderTarget.mockResolvedValue({
             kind: "contact",
