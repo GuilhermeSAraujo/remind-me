@@ -114,5 +114,7 @@ export async function classifyMessageIntent(message: string): Promise<MessageInt
         },
     });
 
+    console.info("Decision AI JEV response:", response);
+
     return intentFromChoice(response.answers.intent);
 }
