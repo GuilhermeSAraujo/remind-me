@@ -173,11 +173,31 @@ export function reminderTargetFromAnswers(
     };
 }
 
+export function buildTargetQuestions(message: string, contacts: AcceptedContact[]) {
+    const tokens = addresseeTokenCandidates(message);
+    return {
+        recipient: choice(
+            {
+                question: "Who should receive this reminder?",
+                use: "`message` and `contacts`",
+            },
+            recipientCriteria(contacts),
+        ),
+        addressee: choice(
+            {
+                question:
+                    "Which word is the person being addressed, when the reminder is for someone who is not a saved contact?",
+                use: "`message`",
+            },
+            addresseeCriteria(tokens),
+        ),
+    };
+}
+
 export async function classifyReminderTarget(
     message: string,
     contacts: AcceptedContact[],
 ): Promise<ReminderTarget> {
-    const tokens = addresseeTokenCandidates(message);
     const response = await decisionClient.systemOne({
         state: {
             message,
@@ -186,23 +206,7 @@ export async function classifyReminderTarget(
                 nickname: contact.nickname,
             })),
         },
-        questions: {
-            recipient: choice(
-                {
-                    question: "Who should receive this reminder?",
-                    use: "`message` and `contacts`",
-                },
-                recipientCriteria(contacts),
-            ),
-            addressee: choice(
-                {
-                    question:
-                        "Which word is the person being addressed, when the reminder is for someone who is not a saved contact?",
-                    use: "`message`",
-                },
-                addresseeCriteria(tokens),
-            ),
-        },
+        questions: buildTargetQuestions(message, contacts),
     });
 
     return reminderTargetFromAnswers(contacts, {

@@ -1,6 +1,6 @@
-import { generateContentWithContext, getIdentificationType } from "../../integrations/ai/gemini-client";
+import { generateContentWithContext } from "../../integrations/ai/gemini-client";
+import { classifyRecurrence } from "../../integrations/decision-ai/classify-recurrence";
 import {
-    PROMPT_EXTRACT_REMINDER_DATA,
     PROMPT_EXTRACT_REMINDER_BASE,
     PROMPT_EXTRACT_RECURRENCE,
 } from "../../integrations/ai/gemini-constants";
@@ -10,7 +10,6 @@ import {
     formatFriendlyDateTime,
     getBrazilWeekday,
     buildBrazilWeekdayDateLookup,
-    buildBrazilWeekdayPromptExample,
     buildBrazilWeekdayPromptExampleBase,
     parseBrazilDateString,
     toBrazilDateTimeString,
@@ -21,6 +20,11 @@ import { sendReply } from "../../integrations/whatsapp/send-reply";
 import { sendMessage } from "../../integrations/whatsapp/send-message";
 import { reactMessage } from "../../integrations/whatsapp/react-message";
 import { stripContactTarget } from "../contacts/resolve-reminder-target";
+import {
+    RECURRENCE_FALLBACK,
+    type RecurrenceData,
+    type RecurrenceDecision,
+} from "./recurrence-from-answers";
 import {
     reminderCreatedForOtherSuffix,
     reminderCreatedForYouMessage,
@@ -229,56 +233,12 @@ interface BaseReminderData {
     date: string;
 }
 
-interface RecurrenceData {
-    recurrence_type: ReminderData["recurrence_type"];
-    recurrence_interval: number;
-    recurrence_weekday: number | null;
-    recurrence_nth: number | null;
-    max_occurrences: number | null;
-    end_date: string | null;
-}
-
-const RECURRENCE_FALLBACK: RecurrenceData = {
-    recurrence_type: "none",
-    recurrence_interval: 0,
-    recurrence_weekday: null,
-    recurrence_nth: null,
-    max_occurrences: null,
-    end_date: null,
-};
-
 async function extractReminderData(
     message: string,
     userId: string,
     onRetry?: (attempt: number) => void | Promise<void>,
 ): Promise<ReminderData[]> {
-    if (getIdentificationType() === "multi-prompt") {
-        return extractReminderDataMultiPrompt(message, userId, onRetry);
-    }
-
     const now = new Date();
-    let reminderData = await generateContentWithContext(
-        userId,
-        PROMPT_EXTRACT_REMINDER_DATA(
-            message,
-            toBrazilDateTimeString(now),
-            getBrazilWeekday(now),
-            buildBrazilWeekdayDateLookup(now),
-            buildBrazilWeekdayPromptExample(now),
-        ),
-        onRetry,
-    );
-    reminderData = reminderData.replace(/```json/g, "").replace(/```/g, "");
-    return JSON.parse(reminderData) as ReminderData[];
-}
-
-async function extractReminderDataMultiPrompt(
-    message: string,
-    userId: string,
-    onRetry?: (attempt: number) => void | Promise<void>,
-): Promise<ReminderData[]> {
-    const now = new Date();
-    // Step 1: extract base fields (title + date only)
     let baseRaw = await generateContentWithContext(
         userId,
         PROMPT_EXTRACT_REMINDER_BASE(
@@ -293,25 +253,20 @@ async function extractReminderDataMultiPrompt(
     baseRaw = baseRaw.replace(/```json/g, "").replace(/```/g, "");
     const baseReminders = JSON.parse(baseRaw) as BaseReminderData[];
 
-    // Step 2: extract recurrence for each reminder (reuses same chat session context)
+    let decisions: RecurrenceDecision[] = baseReminders.map(() => ({ fallback: true }));
+    try {
+        decisions = await classifyRecurrence(message, baseReminders);
+    } catch (err) {
+        console.warn("[AI] Recurrence classification failed, falling back to Gemini:", err);
+    }
+
     const reminders: ReminderData[] = [];
-    for (const base of baseReminders) {
-        let recurrenceData: RecurrenceData = RECURRENCE_FALLBACK;
-        try {
-            let recurrenceRaw = await generateContentWithContext(
-                userId,
-                PROMPT_EXTRACT_RECURRENCE(message, base.title, base.date),
-                onRetry,
-            );
-            recurrenceRaw = recurrenceRaw.replace(/```json/g, "").replace(/```/g, "");
-            recurrenceData = JSON.parse(recurrenceRaw) as RecurrenceData;
-        } catch (err) {
-            const isParseError = err instanceof SyntaxError;
-            console.warn(
-                `[AI] Recurrence ${isParseError ? "parse" : "call"} failed for "${base.title}", falling back to none:`,
-                err,
-            );
-        }
+    for (const [index, base] of baseReminders.entries()) {
+        const decision = decisions[index];
+        const recurrenceData =
+            decision && !decision.fallback
+                ? decision.data
+                : await extractRecurrenceWithGemini(message, userId, base, onRetry);
 
         reminders.push({
             title: base.title,
@@ -326,6 +281,30 @@ async function extractReminderDataMultiPrompt(
     }
 
     return reminders;
+}
+
+async function extractRecurrenceWithGemini(
+    message: string,
+    userId: string,
+    base: BaseReminderData,
+    onRetry?: (attempt: number) => void | Promise<void>,
+): Promise<RecurrenceData> {
+    try {
+        let recurrenceRaw = await generateContentWithContext(
+            userId,
+            PROMPT_EXTRACT_RECURRENCE(message, base.title, base.date),
+            onRetry,
+        );
+        recurrenceRaw = recurrenceRaw.replace(/```json/g, "").replace(/```/g, "");
+        return JSON.parse(recurrenceRaw) as RecurrenceData;
+    } catch (err) {
+        const isParseError = err instanceof SyntaxError;
+        console.warn(
+            `[AI] Recurrence ${isParseError ? "parse" : "call"} failed for "${base.title}", falling back to none:`,
+            err,
+        );
+        return RECURRENCE_FALLBACK;
+    }
 }
 
 const CALENDAR_RULE_TYPES = [

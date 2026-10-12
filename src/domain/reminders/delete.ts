@@ -1,7 +1,13 @@
 import { UserData } from "../../api/middlewares/user-extractor.middleware";
+import { classifyDeleteTarget } from "../../integrations/decision-ai/classify-delete-target";
+import {
+    findMessageById,
+} from "../../integrations/whatsapp/find-messages";
 import { sendMessage } from "../../integrations/whatsapp/send-message";
+import { formatFriendlyDateTime } from "../../shared/utils/date.utils";
+import { stripReminderPrefix } from "../../shared/utils/reminder-prefix.utils";
 import { phoneVariantFilter } from "../contacts/phone";
-import { Reminder } from "./reminder.model";
+import { Reminder, type IReminder } from "./reminder.model";
 import { getRemindersInListOrder } from "./reminders-list-order.helper";
 
 /**
@@ -9,7 +15,6 @@ import { getRemindersInListOrder } from "./reminders-list-order.helper";
  * Retorna o número encontrado ou null se não houver número válido
  */
 function extractNumberFromMessage(message: string): number | null {
-    // Padrão para capturar números após palavras de deletar
     const pattern = /(?:apagar|apague|deletar|delete|remove|remova|exclui|excluir|cancela|cancele)\s+(\d+)/i;
     const match = message.match(pattern);
 
@@ -21,45 +26,22 @@ function extractNumberFromMessage(message: string): number | null {
     return null;
 }
 
-export async function deleteReminder({
-    userData,
-    messageText
-}: {
-    userData: UserData;
-    quotedMsgId?: string;
-    messageText?: string;
-}): Promise<boolean> {
-    let reminder = null;
-
-    // Tentar encontrar pelo número da lista se messageText contiver um número
-    if (messageText) {
-        const listNumber = extractNumberFromMessage(messageText);
-
-        if (listNumber !== null) {
-            const reminders = await getRemindersInListOrder(userData.phoneNumber);
-
-            // Validar se o número está no range válido (1 até quantidade de lembretes)
-            if (listNumber >= 1 && listNumber <= reminders.length) {
-                // Usar índice baseado em 1 (listNumber - 1 para array baseado em 0)
-                reminder = reminders[listNumber - 1];
-            } else {
-                await sendMessage({
-                    phone: userData.phoneNumber,
-                    message: `Número inválido. Você tem ${reminders.length} lembrete(s) pendente(s). Use um número entre 1 e ${reminders.length}.`,
-                });
-                return false;
-            }
-        }
+function unidentifiedMessage(reminders: IReminder[]): string {
+    if (reminders.length === 0) {
+        return "Você não tem lembretes pendentes.";
     }
 
+    const lines = reminders
+        .map(
+            (reminder, index) =>
+                `${index + 1}. ${reminder.title} — ${formatFriendlyDateTime(reminder.scheduledTime)}`,
+        )
+        .join("\n");
 
-    if (!reminder) {
-        await sendMessage({
-            phone: userData.phoneNumber,
-            message: `Não foi possível identificar o lembrete a ser deletado. Envie 'Listar' para identificar qual lembrete deve ser removido.`,
-        });
-        return false;
-    }
+    return `Não foi possível identificar o lembrete a ser deletado. Envie "apagar N":\n\n${lines}`;
+}
+
+async function deleteOwned(userData: UserData, reminder: IReminder): Promise<boolean> {
     console.log("[DELETE REMINDER] ⚠ Reminder found?:", reminder);
     await Reminder.deleteOne({
         _id: reminder._id,
@@ -68,7 +50,69 @@ export async function deleteReminder({
 
     await sendMessage({
         phone: userData.phoneNumber,
-        message: `Lembrete "${reminder?.title}" apagado com sucesso.`,
+        message: `Lembrete "${reminder.title}" apagado com sucesso.`,
     });
     return true;
+}
+
+export async function deleteReminder({
+    userData,
+    quotedMsgId,
+    messageText,
+}: {
+    userData: UserData;
+    quotedMsgId?: string;
+    messageText?: string;
+}): Promise<boolean> {
+    const reminders = await getRemindersInListOrder(userData.phoneNumber);
+
+    if (messageText) {
+        const listNumber = extractNumberFromMessage(messageText);
+
+        if (listNumber !== null) {
+            if (listNumber >= 1 && listNumber <= reminders.length) {
+                return deleteOwned(userData, reminders[listNumber - 1]!);
+            }
+
+            await sendMessage({
+                phone: userData.phoneNumber,
+                message: `Número inválido. Você tem ${reminders.length} lembrete(s) pendente(s). Use um número entre 1 e ${reminders.length}.`,
+            });
+            return false;
+        }
+    }
+
+    if (quotedMsgId) {
+        const whatsappMessage = await findMessageById(userData.phoneNumber, quotedMsgId);
+        if (whatsappMessage) {
+            const title = stripReminderPrefix(whatsappMessage.text);
+            const quoted = await Reminder.findOne({
+                userPhoneNumber: phoneVariantFilter(userData.phoneNumber),
+                title,
+            }).sort({ updatedAt: -1 });
+
+            if (quoted) {
+                return deleteOwned(userData, quoted);
+            }
+        }
+    }
+
+    if (messageText && reminders.length > 0) {
+        const index = await classifyDeleteTarget(
+            messageText,
+            reminders.map((reminder) => ({
+                title: reminder.title,
+                scheduledTime: reminder.scheduledTime,
+            })),
+        );
+        if (index != null) {
+            return deleteOwned(userData, reminders[index]!);
+        }
+    }
+
+    await sendMessage({
+        phone: userData.phoneNumber,
+        message: unidentifiedMessage(reminders),
+    });
+    return false;
 }

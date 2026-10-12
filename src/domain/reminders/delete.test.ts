@@ -1,10 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { mockGetRemindersInListOrder, mockSendMessage, mockDeleteOne } = vi.hoisted(() => ({
-    mockGetRemindersInListOrder: vi.fn(),
-    mockSendMessage: vi.fn(),
-    mockDeleteOne: vi.fn(),
-}));
+const {
+    mockGetRemindersInListOrder,
+    mockSendMessage,
+    mockDeleteOne,
+    mockFindMessageById,
+    mockSort,
+    mockFindOne,
+    mockClassifyDeleteTarget,
+} = vi.hoisted(() => {
+    const mockSort = vi.fn().mockResolvedValue(null);
+    const mockFindOne = vi.fn().mockReturnValue({ sort: mockSort });
+    return {
+        mockGetRemindersInListOrder: vi.fn(),
+        mockSendMessage: vi.fn(),
+        mockDeleteOne: vi.fn(),
+        mockFindMessageById: vi.fn(),
+        mockSort,
+        mockFindOne,
+        mockClassifyDeleteTarget: vi.fn(),
+    };
+});
 
 vi.mock("./reminders-list-order.helper", () => ({
     getRemindersInListOrder: mockGetRemindersInListOrder,
@@ -14,9 +30,18 @@ vi.mock("../../integrations/whatsapp/send-message", () => ({
     sendMessage: mockSendMessage,
 }));
 
+vi.mock("../../integrations/whatsapp/find-messages", () => ({
+    findMessageById: mockFindMessageById,
+}));
+
+vi.mock("../../integrations/decision-ai/classify-delete-target", () => ({
+    classifyDeleteTarget: mockClassifyDeleteTarget,
+}));
+
 vi.mock("./reminder.model", () => ({
     Reminder: {
         deleteOne: mockDeleteOne,
+        findOne: mockFindOne,
     },
 }));
 
@@ -88,6 +113,102 @@ describe("deleteReminder – apagar N uses owned list only", () => {
         expect(mockSendMessage).toHaveBeenCalledWith(
             expect.objectContaining({
                 message: expect.stringContaining("Número inválido"),
+            }),
+        );
+    });
+});
+
+describe("deleteReminder – quoted message and description", () => {
+    const userData = { phoneNumber: "5511999999999" } as never;
+    const owned = {
+        _id: "owned-1",
+        userPhoneNumber: "5511999999999",
+        title: "Comprar pão",
+        scheduledTime: new Date("2026-10-13T13:00:00.000Z"),
+        status: "pending",
+    };
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockDeleteOne.mockResolvedValue({ deletedCount: 1 });
+        mockSendMessage.mockResolvedValue(true);
+        mockFindOne.mockReturnValue({ sort: mockSort });
+        mockSort.mockResolvedValue(null);
+        mockGetRemindersInListOrder.mockResolvedValue([owned]);
+    });
+
+    it("deletes the reminder quoted in the bot message without calling Jev", async () => {
+        mockFindMessageById.mockResolvedValue({
+            id: "wamid.bot",
+            text: "🔔 Lembrete: Comprar pão",
+            fromMe: true,
+        });
+        mockSort.mockResolvedValue(owned);
+
+        const result = await deleteReminder({
+            userData,
+            quotedMsgId: "wamid.bot",
+            messageText: "apagar",
+        });
+
+        expect(result).toBe(true);
+        expect(mockFindMessageById).toHaveBeenCalledWith("5511999999999", "wamid.bot");
+        expect(mockFindOne).toHaveBeenCalledWith(
+            expect.objectContaining({ title: "Comprar pão" }),
+        );
+        expect(mockClassifyDeleteTarget).not.toHaveBeenCalled();
+        expect(mockDeleteOne).toHaveBeenCalledWith(
+            expect.objectContaining({ _id: "owned-1" }),
+        );
+    });
+
+    it("deletes the reminder Jev names with high confidence", async () => {
+        mockClassifyDeleteTarget.mockResolvedValue(0);
+
+        const result = await deleteReminder({
+            userData,
+            messageText: "Deletar lembrete de comprar pão",
+        });
+
+        expect(result).toBe(true);
+        expect(mockClassifyDeleteTarget).toHaveBeenCalledWith("Deletar lembrete de comprar pão", [
+            { title: "Comprar pão", scheduledTime: owned.scheduledTime },
+        ]);
+        expect(mockDeleteOne).toHaveBeenCalledWith(
+            expect.objectContaining({ _id: "owned-1" }),
+        );
+    });
+
+    it("asks for apagar N when Jev is not confident", async () => {
+        mockClassifyDeleteTarget.mockResolvedValue(null);
+
+        const result = await deleteReminder({
+            userData,
+            messageText: "apagar isso",
+        });
+
+        expect(result).toBe(false);
+        expect(mockDeleteOne).not.toHaveBeenCalled();
+        expect(mockSendMessage).toHaveBeenCalledWith(
+            expect.objectContaining({
+                message: expect.stringMatching(/apagar N[\s\S]*1\. Comprar pão/),
+            }),
+        );
+    });
+
+    it("says there are no pending reminders when the list is empty", async () => {
+        mockGetRemindersInListOrder.mockResolvedValue([]);
+
+        const result = await deleteReminder({
+            userData,
+            messageText: "apagar o de pão",
+        });
+
+        expect(result).toBe(false);
+        expect(mockClassifyDeleteTarget).not.toHaveBeenCalled();
+        expect(mockSendMessage).toHaveBeenCalledWith(
+            expect.objectContaining({
+                message: "Você não tem lembretes pendentes.",
             }),
         );
     });

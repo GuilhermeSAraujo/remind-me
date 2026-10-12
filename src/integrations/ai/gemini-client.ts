@@ -22,12 +22,6 @@ function isTransientError(error: unknown): boolean {
   return typeof status === "number" && TRANSIENT_STATUS.has(status);
 }
 
-let identificationType: "single-prompt" | "multi-prompt" = "multi-prompt"
-
-export function getIdentificationType(): "single-prompt" | "multi-prompt" {
-  return identificationType;
-}
-
 setInterval(() => {
   const now = Date.now();
   for (const [userId, data] of chatSessions.entries()) {

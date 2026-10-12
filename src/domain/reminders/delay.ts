@@ -1,36 +1,31 @@
-import { generateContentWithContext } from "../../integrations/ai/gemini-client";
-import { PROMPT_IDENTIFY_DELAY } from "../../integrations/ai/gemini-constants";
+import { classifyDelay, type DelayUnit } from "../../integrations/decision-ai/classify-delay";
 import {
     findLastFromMeMessage,
     findMessageById,
 } from "../../integrations/whatsapp/find-messages";
 import { sendMessage } from "../../integrations/whatsapp/send-message";
 import { UserData } from "../../integrations/whatsapp/types";
-import {
-    formatFriendlyDateTime,
-    parseBrazilDateString,
-    toBrazilDateTimeString,
-    truncateToMinute,
-} from "../../shared/utils/date.utils";
+import { formatFriendlyDateTime, truncateToMinute } from "../../shared/utils/date.utils";
 import { stripReminderPrefix } from "../../shared/utils/reminder-prefix.utils";
 import { phoneVariantFilter } from "../contacts/phone";
 import { Reminder } from "./reminder.model";
 
-async function extractDelayFromMessage(
-    userId: string,
-    messageText: string,
-): Promise<string | null> {
-    try {
-        let delay = await generateContentWithContext(
-            userId,
-            PROMPT_IDENTIFY_DELAY(messageText, toBrazilDateTimeString(new Date())),
-        );
-        delay = delay.replace(/```json/g, "").replace(/```/g, "");
-        return JSON.parse(delay)?.newScheduledTime ?? null;
-    } catch (error) {
-        console.error("[DELAY REMINDER] Failed to extract delay:", error);
-        return null;
+const DELAY_NOT_UNDERSTOOD =
+    'Erro ao identificar o tempo de adiamento. Exemplo: "Adiar 30 minutos".';
+
+const UNIT_MS: Record<Exclude<DelayUnit, "days">, number> = {
+    minutes: 60 * 1000,
+    hours: 60 * 60 * 1000,
+};
+
+export function applyDelay(now: Date, amount: number, unit: DelayUnit): Date {
+    if (unit === "days") {
+        const next = new Date(now);
+        next.setDate(next.getDate() + amount);
+        return truncateToMinute(next);
     }
+
+    return truncateToMinute(new Date(now.getTime() + amount * UNIT_MS[unit]));
 }
 
 export async function delayReminder({
@@ -69,20 +64,16 @@ export async function delayReminder({
         return false;
     }
 
-    const newScheduledTime = await extractDelayFromMessage(
-        userData.phoneNumber,
-        messageText,
-    );
-
-    if (!newScheduledTime) {
+    const delay = await classifyDelay(messageText);
+    if (!delay) {
         await sendMessage({
             phone: userData.phoneNumber,
-            message: "Erro ao identificar o tempo de adiamento",
+            message: DELAY_NOT_UNDERSTOOD,
         });
         return false;
     }
 
-    const scheduledDate = truncateToMinute(parseBrazilDateString(newScheduledTime));
+    const scheduledDate = applyDelay(new Date(), delay.amount, delay.unit);
     reminder.scheduledTime = scheduledDate;
     reminder.status = "pending";
     await reminder.save();

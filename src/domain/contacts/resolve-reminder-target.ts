@@ -9,7 +9,11 @@ export type ReminderTarget =
 export async function resolveReminderTarget(
     senderPhone: string,
     message: string,
+    decided?: ReminderTarget,
 ): Promise<ReminderTarget> {
+    if (decided) {
+        return decided;
+    }
     const contacts = await findAcceptedContactsForUser(senderPhone);
     return classifyReminderTarget(message, contacts);
 }

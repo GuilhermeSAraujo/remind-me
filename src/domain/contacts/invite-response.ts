@@ -40,15 +40,19 @@ function normalizeInviteEmoji(emoji: string): string {
 
 export function classifyInviteText(message: string): "yes" | "no" | null {
     const trimmed = message.trim();
-    const normalized = stripAccents(trimmed.toLowerCase());
+    const asEmoji = classifyInviteReaction(trimmed);
+    if (asEmoji !== "unknown") {
+        return asEmoji;
+    }
+    const withoutEdgePunctuation = trimmed.replace(/^[\p{P}]+|[\p{P}]+$/gu, "");
+    const normalized = stripAccents(withoutEdgePunctuation.toLowerCase());
     if (YES_TEXT.has(normalized)) {
         return "yes";
     }
     if (NO_TEXT.has(normalized)) {
         return "no";
     }
-    const asEmoji = classifyInviteReaction(trimmed);
-    return asEmoji === "unknown" ? null : asEmoji;
+    return null;
 }
 
 export function classifyInviteReaction(emoji: string): "yes" | "no" | "unknown" {

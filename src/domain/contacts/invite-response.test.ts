@@ -70,6 +70,8 @@ describe("classifyInviteText", () => {
         expect(classifyInviteText("recuso")).toBe("no");
         expect(classifyInviteText("Me lembre de comprar pão")).toBeNull();
         expect(classifyInviteText("sim, me lembre de x")).toBeNull();
+        expect(classifyInviteText("Sim!")).toBe("yes");
+        expect(classifyInviteText("não.")).toBe("no");
     });
 
     it("accepts the same yes/no emojis as a whole-message reply", () => {

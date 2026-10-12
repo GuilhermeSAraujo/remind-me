@@ -8,6 +8,7 @@ const {
     mockReactMessage,
     mockCheckReminderCreationLimit,
     mockRecordReminderCreation,
+    mockClassifyRecurrence,
 } = vi.hoisted(() => ({
     mockGenerateContent: vi.fn(),
     mockSendReply: vi.fn(),
@@ -16,11 +17,15 @@ const {
     mockReactMessage: vi.fn(),
     mockCheckReminderCreationLimit: vi.fn(),
     mockRecordReminderCreation: vi.fn(),
+    mockClassifyRecurrence: vi.fn(),
 }));
 
 vi.mock("../../integrations/ai/gemini-client", () => ({
     generateContentWithContext: mockGenerateContent,
-    getIdentificationType: () => "single-prompt",
+}));
+
+vi.mock("../../integrations/decision-ai/classify-recurrence", () => ({
+    classifyRecurrence: mockClassifyRecurrence,
 }));
 
 vi.mock("../../integrations/whatsapp/send-reply", () => ({
@@ -54,6 +59,27 @@ const sampleMessageKey = {
     id: "wamid.SAMPLE",
 };
 
+function noneRecurrence(overrides: Record<string, unknown> = {}) {
+    return {
+        fallback: false as const,
+        data: {
+            recurrence_type: "none",
+            recurrence_interval: 0,
+            recurrence_weekday: null,
+            recurrence_nth: null,
+            max_occurrences: null,
+            end_date: null,
+            ...overrides,
+        },
+    };
+}
+
+function mockNoneRecurrence() {
+    mockClassifyRecurrence.mockImplementation(async (_message: string, reminders: unknown[]) =>
+        reminders.map(() => noneRecurrence()),
+    );
+}
+
 describe("scheduleReminder – confirmation messages with end date and max occurrences", () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -68,21 +94,16 @@ describe("scheduleReminder – confirmation messages with end date and max occur
             isPremium: false,
         });
         mockRecordReminderCreation.mockResolvedValue(undefined);
+        mockNoneRecurrence();
     });
 
     it("includes end date and max occurrences in single reminder confirmation", async () => {
         mockGenerateContent.mockResolvedValue(
-            JSON.stringify([
-                {
-                    title: "tomar remédio",
-                    date: "2026-03-10 08:00",
-                    recurrence_type: "none",
-                    recurrence_interval: 0,
-                    max_occurrences: 5,
-                    end_date: "2026-03-31 10:00",
-                },
-            ]),
+            JSON.stringify([{ title: "tomar remédio", date: "2026-03-10 08:00" }]),
         );
+        mockClassifyRecurrence.mockResolvedValue([
+            noneRecurrence({ max_occurrences: 5, end_date: "2026-03-31 10:00" }),
+        ]);
 
         await scheduleReminder({
             userData: {
@@ -108,24 +129,18 @@ describe("scheduleReminder – confirmation messages with end date and max occur
         const messageKey = { ...sampleMessageKey, id: "wamid.SAMPLE2" };
         mockGenerateContent.mockResolvedValue(
             JSON.stringify([
-                {
-                    title: "remédio manhã",
-                    date: "2026-03-10 08:00",
-                    recurrence_type: "daily",
-                    recurrence_interval: 1,
-                    end_date: "2026-03-31 08:00",
-                    max_occurrences: null,
-                },
-                {
-                    title: "remédio noite",
-                    date: "2026-03-10 20:00",
-                    recurrence_type: "none",
-                    recurrence_interval: 0,
-                    end_date: null,
-                    max_occurrences: 3,
-                },
+                { title: "remédio manhã", date: "2026-03-10 08:00" },
+                { title: "remédio noite", date: "2026-03-10 20:00" },
             ]),
         );
+        mockClassifyRecurrence.mockResolvedValue([
+            noneRecurrence({
+                recurrence_type: "daily",
+                recurrence_interval: 1,
+                end_date: "2026-03-31 08:00",
+            }),
+            noneRecurrence({ max_occurrences: 3 }),
+        ]);
 
         await scheduleReminder({
             userData: {
@@ -186,6 +201,7 @@ describe("scheduleReminder – createdBy and contact target", () => {
             isPremium: false,
         });
         mockRecordReminderCreation.mockResolvedValue(undefined);
+        mockNoneRecurrence();
     });
 
     it("sets createdByPhoneNumber equal to the owner for self reminders", async () => {
@@ -424,6 +440,93 @@ describe("scheduleReminder – createdBy and contact target", () => {
         expect(reply.message).toContain("Lembrete criado");
         expect(reply.message).toContain("1 lembrete não foi criado");
         expect(mockReactMessage).toHaveBeenCalledWith(sampleMessageKey, "✅");
+    });
+});
+
+describe("scheduleReminder – Jev recurrence", () => {
+    const userData = {
+        phoneNumber: "5511999999999",
+        messageId: "wamid.SAMPLE",
+        name: "Test",
+        messageKey: sampleMessageKey,
+    };
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockSendReply.mockResolvedValue(true);
+        mockSendMessage.mockResolvedValue(true);
+        mockReactMessage.mockResolvedValue(true);
+        mockReminderCreate.mockResolvedValue(undefined);
+        mockCheckReminderCreationLimit.mockResolvedValue({
+            allowed: true,
+            remaining: 3,
+            resetIn: 0,
+            isPremium: false,
+        });
+        mockRecordReminderCreation.mockResolvedValue(undefined);
+        mockNoneRecurrence();
+    });
+
+    it("uses the Jev recurrence and does not ask Gemini for it", async () => {
+        mockGenerateContent.mockResolvedValueOnce(
+            JSON.stringify([{ title: "Comprar pão", date: "2026-10-13 10:00:00" }]),
+        );
+        mockClassifyRecurrence.mockResolvedValue([
+            {
+                fallback: false,
+                data: {
+                    recurrence_type: "daily",
+                    recurrence_interval: 1,
+                    recurrence_weekday: null,
+                    recurrence_nth: null,
+                    max_occurrences: null,
+                    end_date: null,
+                },
+            },
+        ]);
+
+        await scheduleReminder({
+            userData,
+            message: "Me lembre de comprar pão todo dia às 10h",
+            messageId: "wamid.SAMPLE",
+        });
+
+        expect(mockClassifyRecurrence).toHaveBeenCalledTimes(1);
+        expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+        expect(mockReminderCreate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                title: "Comprar pão",
+                recurrence_type: "daily",
+                recurrence_interval: 1,
+            }),
+        );
+    });
+
+    it("asks Gemini for recurrence when Jev falls back", async () => {
+        mockGenerateContent
+            .mockResolvedValueOnce(JSON.stringify([{ title: "Comprar pão", date: "2026-10-13 10:00:00" }]))
+            .mockResolvedValueOnce(
+                JSON.stringify({
+                    recurrence_type: "weekly",
+                    recurrence_interval: 1,
+                    recurrence_weekday: null,
+                    recurrence_nth: null,
+                    max_occurrences: null,
+                    end_date: null,
+                }),
+            );
+        mockClassifyRecurrence.mockResolvedValue([{ fallback: true }]);
+
+        await scheduleReminder({
+            userData,
+            message: "Me lembre de comprar pão até sexta",
+            messageId: "wamid.SAMPLE",
+        });
+
+        expect(mockGenerateContent).toHaveBeenCalledTimes(2);
+        expect(mockReminderCreate).toHaveBeenCalledWith(
+            expect.objectContaining({ recurrence_type: "weekly" }),
+        );
     });
 });
 

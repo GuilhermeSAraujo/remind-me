@@ -17,7 +17,8 @@ const {
     mockClearChatSession,
     mockResolveReminderTarget,
     mockFindUserByAnyPhone,
-    mockClassifyMessageIntent,
+    mockClassifyMessage,
+    mockFindAcceptedContactsForUser,
 } = vi.hoisted(() => ({
     mockReactMessage: vi.fn(),
     mockSendMessage: vi.fn(),
@@ -32,7 +33,8 @@ const {
     mockClearChatSession: vi.fn(),
     mockResolveReminderTarget: vi.fn(),
     mockFindUserByAnyPhone: vi.fn(),
-    mockClassifyMessageIntent: vi.fn(),
+    mockClassifyMessage: vi.fn(),
+    mockFindAcceptedContactsForUser: vi.fn(),
 }));
 
 vi.mock("./react-message", () => ({
@@ -55,8 +57,8 @@ vi.mock("../ai/gemini-client", () => ({
     clearChatSession: mockClearChatSession,
 }));
 
-vi.mock("../decision-ai/classify-intent", () => ({
-    classifyMessageIntent: mockClassifyMessageIntent,
+vi.mock("../decision-ai/classify-message", () => ({
+    classifyMessage: mockClassifyMessage,
 }));
 
 vi.mock("../../services/rate-limiter.service", () => ({
@@ -90,6 +92,7 @@ vi.mock("../../domain/contacts/list", () => ({
 vi.mock("../../domain/contacts/queries", () => ({
     findPendingByInviteMessageId: mockFindPendingByInviteMessageId,
     findLatestPendingForInvitee: mockFindLatestPendingForInvitee,
+    findAcceptedContactsForUser: mockFindAcceptedContactsForUser,
 }));
 
 vi.mock("../../domain/contacts/invite-response", async (importOriginal) => {
@@ -200,7 +203,12 @@ describe("processMessage – contacts", () => {
         });
         mockResolveReminderTarget.mockResolvedValue({ kind: "self" });
         mockFindUserByAnyPhone.mockResolvedValue(null);
-        mockClassifyMessageIntent.mockResolvedValue("help");
+        mockFindAcceptedContactsForUser.mockResolvedValue([]);
+        mockClassifyMessage.mockResolvedValue({
+            intent: "help",
+            target: { kind: "self" },
+            inviteResponse: null,
+        });
     });
 
     it("applies a 👍 reaction on a pending invite and does not register a contact", async () => {
@@ -219,7 +227,7 @@ describe("processMessage – contacts", () => {
             decision: "yes",
         });
         expect(mockRegisterContact).not.toHaveBeenCalled();
-        expect(mockClassifyMessageIntent).not.toHaveBeenCalled();
+        expect(mockClassifyMessage).not.toHaveBeenCalled();
         expect(mockReactMessage).not.toHaveBeenCalledWith(userData.messageKey, "⏳");
         expect(mockReactMessage).toHaveBeenCalledWith(userData.messageKey, "✅");
         expect(mockSendMessage).not.toHaveBeenCalled();
@@ -281,7 +289,7 @@ describe("processMessage – contacts", () => {
             decision: "yes",
         });
         expect(mockRegisterContact).not.toHaveBeenCalled();
-        expect(mockClassifyMessageIntent).not.toHaveBeenCalled();
+        expect(mockClassifyMessage).not.toHaveBeenCalled();
         expect(mockSendMessages).not.toHaveBeenCalled();
         expect(mockReactMessage).toHaveBeenCalledWith(userData.messageKey, "⏳");
         expect(mockReactMessage).toHaveBeenCalledWith(userData.messageKey, "✅");
@@ -374,7 +382,11 @@ describe("processMessage – contacts", () => {
 
     it("does not treat 'sim, me lembre de pão' as an invite reply", async () => {
         mockFindLatestPendingForInvitee.mockResolvedValue(pendingContact());
-        mockClassifyMessageIntent.mockResolvedValue("reminder");
+        mockClassifyMessage.mockResolvedValue({
+            intent: "reminder",
+            target: { kind: "self" },
+            inviteResponse: null,
+        });
 
         await processMessage(conversationPayload("sim, me lembre de pão"), userData);
 
@@ -382,9 +394,38 @@ describe("processMessage – contacts", () => {
         expect(mockEnqueueReminder).toHaveBeenCalledOnce();
     });
 
+    it("applies a pending invite when Jev reads the reply as accept", async () => {
+        const contact = pendingContact();
+        mockFindLatestPendingForInvitee.mockResolvedValue(contact);
+        mockClassifyMessage.mockResolvedValue({
+            intent: "help",
+            target: { kind: "self" },
+            inviteResponse: "accept",
+        });
+
+        await processMessage(conversationPayload("pode sim, aceito"), userData);
+
+        expect(mockClassifyMessage).toHaveBeenCalledWith({
+            message: "pode sim, aceito",
+            contacts: [],
+            pendingInvite: true,
+        });
+        expect(mockApplyInviteDecision).toHaveBeenCalledWith({
+            userData,
+            contact,
+            decision: "yes",
+        });
+        expect(mockEnqueueReminder).not.toHaveBeenCalled();
+        expect(mockReactMessage).toHaveBeenCalledWith(userData.messageKey, "✅");
+    });
+
     it("registers a contact for Cadastrar pessoa", async () => {
         const message = "Cadastrar pessoa (31)999999999 Victor";
-        mockClassifyMessageIntent.mockResolvedValue("register_contact");
+        mockClassifyMessage.mockResolvedValue({
+            intent: "register_contact",
+            target: { kind: "self" },
+            inviteResponse: null,
+        });
 
         await processMessage(conversationPayload(message), userData);
 
@@ -395,7 +436,11 @@ describe("processMessage – contacts", () => {
     });
 
     it("lists contacts for Contatos", async () => {
-        mockClassifyMessageIntent.mockResolvedValue("list_contacts");
+        mockClassifyMessage.mockResolvedValue({
+            intent: "list_contacts",
+            target: { kind: "self" },
+            inviteResponse: null,
+        });
 
         await processMessage(conversationPayload("Contatos"), userData);
 
@@ -411,7 +456,11 @@ describe("processMessage – contacts", () => {
 
         expect(mockFindLatestPendingForInvitee).toHaveBeenCalledWith(userData.phoneNumber);
         expect(mockApplyInviteDecision).not.toHaveBeenCalled();
-        expect(mockClassifyMessageIntent).toHaveBeenCalledWith("sim");
+        expect(mockClassifyMessage).toHaveBeenCalledWith({
+            message: "sim",
+            contacts: [],
+            pendingInvite: false,
+        });
         expect(mockSendMessages).toHaveBeenCalledWith({
             phone: userData.phoneNumber,
             messages: HELP_MESSAGES,
@@ -436,7 +485,12 @@ describe("processMessage – reminder target and quota", () => {
         });
         mockResolveReminderTarget.mockResolvedValue({ kind: "self" });
         mockFindUserByAnyPhone.mockResolvedValue(null);
-        mockClassifyMessageIntent.mockResolvedValue("reminder");
+        mockFindAcceptedContactsForUser.mockResolvedValue([]);
+        mockClassifyMessage.mockResolvedValue({
+            intent: "reminder",
+            target: { kind: "self" },
+            inviteResponse: null,
+        });
     });
 
     it("does not enqueue when Lembre a Maria targets an unknown contact", async () => {
@@ -529,7 +583,16 @@ describe("processMessage – reminder target and quota", () => {
     it("checks the daily creation limit and enqueues when the user is under it", async () => {
         await processMessage(conversationPayload("Me lembre de pão"), userData);
 
-        expect(mockClassifyMessageIntent).toHaveBeenCalledWith("Me lembre de pão");
+        expect(mockClassifyMessage).toHaveBeenCalledWith({
+            message: "Me lembre de pão",
+            contacts: [],
+            pendingInvite: false,
+        });
+        expect(mockResolveReminderTarget).toHaveBeenCalledWith(
+            userData.phoneNumber,
+            "Me lembre de pão",
+            { kind: "self" },
+        );
         expect(mockCheckReminderCreationLimit).toHaveBeenCalledWith(userData.phoneNumber);
         expect(mockEnqueueReminder).toHaveBeenCalledOnce();
     });

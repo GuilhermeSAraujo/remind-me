@@ -100,17 +100,21 @@ export function intentFromChoice(answer: {
     return answer.choice;
 }
 
+export function buildIntentQuestion() {
+    return choice(
+        {
+            question: "Which flow should this WhatsApp message follow?",
+            use: "`message`",
+        },
+        intentCriteria,
+    );
+}
+
 export async function classifyMessageIntent(message: string): Promise<MessageIntent> {
     const response = await decisionClient.systemOne({
         state: { message },
         questions: {
-            intent: choice(
-                {
-                    question: "Which flow should this WhatsApp message follow?",
-                    use: "`message`",
-                },
-                intentCriteria,
-            ),
+            intent: buildIntentQuestion(),
         },
     });
 

@@ -25,7 +25,7 @@ User → WhatsApp → WPPConnect Server → Remind Me Bot → AI (Gemini) → Mo
 1. The user sends a WhatsApp message to the bot's number.
 2. **WPPConnect Server** (a self-hosted WhatsApp Web bridge) receives the message and forwards it as a webhook `POST /` to the Remind Me server.
 3. The server identifies the user by phone number and creates an account if they are new.
-4. The intent of the message is detected — first using fast regex patterns, then using Google Gemini AI as a fallback.
+4. Jev (TypeSafe) classifies the message. Gemini is used only to extract a reminder's title and date, and as the fallback for recurrence.
 5. The appropriate action is executed (create, list, delete, or delay a reminder).
 6. A confirmation reply is sent back through the WPPConnect Server to the user's WhatsApp.
 7. A `cron` job runs every minute to check for due reminders and deliver them via WhatsApp.
@@ -51,24 +51,22 @@ Sending a message like *"listar"* or *"quais são meus lembretes"* returns a num
 
 ### Deleting Reminders
 
-Reminders can be deleted in two ways:
-- Reply to any bot message with *"apagar"* (or synonyms like *"deletar"*, *"excluir"*) — the bot figures out which reminder the user is referring to.
-- Send *"apagar 2"* to delete reminder number 2 from the list.
+Reminders can be deleted in three ways:
+- Send *"apagar 2"* to delete reminder number 2 from the numbered list.
+- Reply to the reminder message with *"apagar"* — the quoted message is matched to the reminder title.
+- Describe it, for example *"apaga o de comprar pão"*. Jev picks among the pending reminders. Confidence below 0.8, or no match, replies with the numbered list and asks for *"apagar N"*.
 
 If deletion fails (e.g. no reminder found), the bot sends an explanatory image showing how to do it correctly.
 
 ### Delaying Reminders
 
-Users can reply to a reminder notification with a delay instruction:
-- *"Adiar 30 minutos"* — reschedules by 30 minutes.
-- *"amanhã"* — reschedules to the next day.
-- A single character (e.g. *"1"*) — defaults to +5 minutes.
+Users can reply to a reminder notification with a delay instruction. Jev chooses the unit (minutes, hours, or days) and the amount; the code adds that interval to the current time. *"Adiar 30 minutos"*, *"Adiar 2 horas"*, and *"Adiar 1 dia"* are valid. *"amanhã"* and a bare *"1"* do not delay a reminder. Below a confidence of 0.6 the bot keeps the error and shows an example.
 
 ### Contacts and reminders for others
 
 Users can invite another person as a contact and schedule reminders **for** that person.
 
-- **Invite:** *"Cadastrar pessoa (31)999999999 Victor"* sends an invite. The invitee accepts or rejects with *"sim"* / *"não"* (or 👍 / 👎). Both parties are notified when the invite is answered.
+- **Invite:** *"Cadastrar pessoa (31)999999999 Victor"* sends an invite. The invitee accepts or rejects with *"sim"* / *"não"* (punctuation such as *"Sim!"* and *"não."* counts), a 👍 / 👎, or a longer reply such as *"pode sim, aceito"* when an invite is pending. Both parties are notified when the invite is answered.
 - **List contacts:** *"Contatos"* shows accepted contacts (or guidance if the list is empty).
 - **Schedule for a contact:** *"Lembre a Victor amanhã 12h de passear com o cachorro"*. The **owner** (`userPhoneNumber`) is who receives the reminder and can delete/delay it; the **creator** (`createdByPhoneNumber`) is who scheduled it.
 - **List reminders:** numbered list = reminders the user owns; below that, an unnumbered readonly section shows reminders they created for others. *"apagar N"* only applies to the numbered list.
@@ -89,7 +87,7 @@ The bot responds politely to greetings (*"oi"*, *"olá"*) and expressions of tha
 - **Typing indicator**: The bot shows "typing…" while processing every message, making the interaction feel live and conversational.
 - **Message reactions**: The bot reacts to every user message with an emoji reflecting the outcome — ⏳ (processing), ✅ (done), 🗑️ (deleted), 🚫 (blocked/limit reached).
 - **Random reminder prefixes**: Delivery messages use varied prefixes (e.g. *"🔔 Lembrete:"*, *"⏰ Hora do:"*) to avoid feeling robotic.
-- **Context awareness**: When deleting or delaying, the bot inspects the quoted/replied-to message to figure out which reminder the user means — no need to look up a number.
+- **Context awareness**: When delaying, or when deleting by reply, the bot inspects the quoted message to figure out which reminder the user means. A delete that is not a reply and not *"apagar N"* is matched by description.
 
 ---
 
@@ -115,9 +113,9 @@ The bot responds politely to greetings (*"oi"*, *"olá"*) and expressions of tha
 
 ## Intent Detection
 
-Invite replies (an exact yes/no, or a reaction on the invite message) are handled before classification. Every other inbound message is classified by Jev (TypeSafe) with a single Choice over the message text. Confidence below 0.5 is treated as help.
+An exact yes/no (including edge punctuation) or a reaction on the invite message is handled before classification. Every other inbound message is one Jev call: intent, who the reminder is for, which word names that person, and — only when a contact invite is pending — whether the message accepts or rejects it. An invite answer at confidence 0.7 or higher is applied and the message is not routed further. Intent confidence below 0.5 is treated as help.
 
-Creating a reminder and identifying a delay still use Gemini. Classification does not. Free-tier usage is the number of reminders saved in a sliding 24-hour window, stored as timestamps on the user.
+Gemini extracts the title and the first date of a reminder. Jev answers typed recurrence questions, and Gemini is the fallback when an end date is a calendar phrase or a confidence is below 0.6. Delay does not use Gemini. Free-tier usage is the number of reminders saved in a sliding 24-hour window, stored as timestamps on the user.
 
 ---
 

@@ -4,7 +4,11 @@ import {
     reminderOwnerMissingMessage,
     reminderUnknownContactMessage,
 } from "../../domain/contacts/messages";
-import { findLatestPendingForInvitee, findPendingByInviteMessageId } from "../../domain/contacts/queries";
+import {
+    findAcceptedContactsForUser,
+    findLatestPendingForInvitee,
+    findPendingByInviteMessageId,
+} from "../../domain/contacts/queries";
 import { registerContact } from "../../domain/contacts/register";
 import { resolveReminderTarget } from "../../domain/contacts/resolve-reminder-target";
 import { deleteReminder } from "../../domain/reminders/delete";
@@ -14,7 +18,7 @@ import { findUserByAnyPhone } from "../../domain/users/find-user-by-phone";
 import { delayReminder } from "../../domain/reminders/delay";
 import { checkReminderCreationLimit } from "../../services/rate-limiter.service";
 import { clearChatSession } from "../ai/gemini-client";
-import { classifyMessageIntent } from "../decision-ai/classify-intent";
+import { classifyMessage } from "../decision-ai/classify-message";
 import { BUY_PREMIUM_MESSAGE, HELP_MESSAGES, RATE_LIMIT_EXCEEDED_MESSAGE } from "./constants";
 import { enqueueReminder } from "./reminder-queue";
 import { reactMessage } from "./react-message";
@@ -71,7 +75,21 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
     }
 
     try {
-        const messageIntent = await classifyMessageIntent(message);
+        const contacts = await findAcceptedContactsForUser(userData.phoneNumber);
+        const pendingInvite = await findLatestPendingForInvitee(userData.phoneNumber);
+        const classified = await classifyMessage({
+            message,
+            contacts,
+            pendingInvite: pendingInvite != null,
+        });
+        if (classified.inviteResponse && pendingInvite) {
+            const decision = classified.inviteResponse === "accept" ? "yes" : "no";
+            await applyInviteDecision({ userData, contact: pendingInvite, decision });
+            await reactMessage(userData.messageKey, inviteReactionEmoji(decision));
+            return;
+        }
+
+        const messageIntent = classified.intent;
         console.log("[PROCESSOR] ⚠ Message intent:", messageIntent);
 
         switch (messageIntent) {
@@ -98,7 +116,11 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                     return;
                 }
 
-                const target = await resolveReminderTarget(userData.phoneNumber, message);
+                const target = await resolveReminderTarget(
+                    userData.phoneNumber,
+                    message,
+                    classified.target,
+                );
                 if (target.kind === "unknown_name") {
                     await sendMessage({
                         phone: userData.phoneNumber,

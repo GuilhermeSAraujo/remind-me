@@ -119,31 +119,7 @@ export function buildBrazilWeekdayDateLookup(now: Date = new Date()): string {
     ].join("\n");
 }
 
-/**
- * Dynamic weekday example built from the same lookup so dates always match "today".
- * Uses próxima quinta-feira (the bug class that motivated this change).
- */
-export function buildBrazilWeekdayPromptExample(now: Date = new Date()): string {
-    const { byWeekday } = getBrazilWeekdayDates(now);
-    const date = byWeekday["quinta-feira"].proxima;
-    return [
-        "Example (using WEEKDAY DATE LOOKUP above): Me lembre próxima quinta-feira de buscar colchas 18h",
-        `[`,
-        `    {`,
-        `        title: "Buscar colchas",`,
-        `        date: "${date} 18:00:00",`,
-        `        recurrence_type: "none",`,
-        `        recurrence_interval: 0,`,
-        `        recurrence_weekday: null,`,
-        `        recurrence_nth: null,`,
-        `        max_occurrences: null,`,
-        `        end_date: null`,
-        `    }`,
-        `]`,
-    ].join("\n");
-}
-
-/** Shorter dynamic example for the base (title+date only) extract prompt. */
+/** Dynamic weekday example for the base (title+date only) extract prompt. */
 export function buildBrazilWeekdayPromptExampleBase(now: Date = new Date()): string {
     const { byWeekday } = getBrazilWeekdayDates(now);
     const date = byWeekday["quinta-feira"].proxima;
