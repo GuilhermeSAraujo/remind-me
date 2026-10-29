@@ -10,7 +10,10 @@ import {
     findPendingByInviteMessageId,
 } from "../../domain/contacts/queries";
 import { registerContact } from "../../domain/contacts/register";
-import { resolveReminderTarget } from "../../domain/contacts/resolve-reminder-target";
+import {
+    resolveReminderTarget,
+    type ReminderTarget,
+} from "../../domain/contacts/resolve-reminder-target";
 import { deleteReminder } from "../../domain/reminders/delete";
 import { listReminders } from "../../domain/reminders/list";
 import { scheduleReminder, type ScheduleReminderTarget } from "../../domain/reminders/schedule";
@@ -18,17 +21,165 @@ import { findUserByAnyPhone } from "../../domain/users/find-user-by-phone";
 import { delayReminder } from "../../domain/reminders/delay";
 import { checkReminderCreationLimit } from "../../services/rate-limiter.service";
 import { clearChatSession } from "../ai/gemini-client";
+import { transcribeAudio } from "../ai/transcribe-audio";
 import { classifyMessage } from "../decision-ai/classify-message";
 import { BUY_PREMIUM_MESSAGE, HELP_MESSAGES, RATE_LIMIT_EXCEEDED_MESSAGE } from "./constants";
+import { downloadAudio } from "./download-media";
 import { enqueueReminder } from "./reminder-queue";
 import { reactMessage } from "./react-message";
 import { sendMessage } from "./send-message";
 import { sendMessages } from "./send-messages";
-import { inboundMessageText } from "./webhook-identity";
+import {
+    inboundAudioSeconds,
+    inboundMessageText,
+    isAudioInbound,
+    MAX_AUDIO_SECONDS,
+} from "./webhook-identity";
 import type { MessagePayload, UserData } from "./types";
+
+const TEXT_TOO_LONG_MESSAGE =
+    "Infelizmente, não é possível enviar mensagens muito longas. Por favor, envie uma mensagem mais curta.";
+const AUDIO_TOO_LONG_MESSAGE =
+    "Infelizmente, não é possível enviar áudios muito longos. Por favor, envie um áudio de até 1 minuto.";
+const AUDIO_UNHEARD_MESSAGE =
+    "Não consegui ouvir o áudio. Tente novamente ou envie o lembrete por texto.";
+const AUDIO_NOT_UNDERSTOOD_MESSAGE =
+    "Não consegui entender o áudio. Tente novamente ou envie o lembrete por texto.";
+const MAX_MESSAGE_LENGTH = 250;
 
 function inviteReactionEmoji(decision: "yes" | "no" | "unknown"): "✅" | "❌" {
     return decision === "no" ? "❌" : "✅";
+}
+
+async function rejectIfOverQuota(userData: UserData): Promise<boolean> {
+    const creationLimit = await checkReminderCreationLimit(userData.phoneNumber);
+    if (creationLimit.allowed) {
+        return false;
+    }
+
+    const resetInHours = creationLimit.resetIn / (1000 * 60 * 60);
+    await sendMessage({
+        phone: userData.phoneNumber,
+        message: RATE_LIMIT_EXCEEDED_MESSAGE(resetInHours, userData.phoneNumber),
+    });
+    await reactMessage(userData.messageKey, "❌");
+    return true;
+}
+
+async function enqueueScheduledReminder({
+    userData,
+    message,
+    messageId,
+    decidedTarget,
+}: {
+    userData: UserData;
+    message: string;
+    messageId: string;
+    decidedTarget?: ReminderTarget;
+}) {
+    const target = await resolveReminderTarget(
+        userData.phoneNumber,
+        message,
+        decidedTarget,
+    );
+    if (target.kind === "unknown_name") {
+        await sendMessage({
+            phone: userData.phoneNumber,
+            message: reminderUnknownContactMessage(target.name),
+        });
+        await reactMessage(userData.messageKey, "❌");
+        return;
+    }
+
+    let scheduleTarget: ScheduleReminderTarget | undefined;
+    if (target.kind === "contact") {
+        const owner = await findUserByAnyPhone(target.ownerPhoneDigits);
+        if (!owner) {
+            await sendMessage({
+                phone: userData.phoneNumber,
+                message: reminderOwnerMissingMessage(target.nickname),
+            });
+            await reactMessage(userData.messageKey, "❌");
+            return;
+        }
+        scheduleTarget = {
+            ownerPhoneNumber: owner.phoneNumber,
+            ownerNickname: target.nickname,
+            creatorDisplayName: userData.name,
+        };
+    }
+
+    // Keep ⏳ until scheduleReminder sets ✅/❌
+    enqueueReminder(() =>
+        scheduleReminder({
+            userData,
+            message,
+            messageId,
+            target: scheduleTarget,
+        }),
+    );
+}
+
+async function processAudioReminder(body: MessagePayload, userData: UserData) {
+    const seconds = inboundAudioSeconds(body.data);
+    if (seconds !== undefined && seconds > MAX_AUDIO_SECONDS) {
+        await sendMessage({
+            phone: userData.phoneNumber,
+            message: AUDIO_TOO_LONG_MESSAGE,
+        });
+        await reactMessage(userData.messageKey, "❌");
+        return;
+    }
+
+    if (await rejectIfOverQuota(userData)) {
+        return;
+    }
+
+    enqueueReminder(async () => {
+        try {
+            const media = await downloadAudio(body.data.key.id);
+            if (!media) {
+                await sendMessage({
+                    phone: userData.phoneNumber,
+                    message: AUDIO_UNHEARD_MESSAGE,
+                });
+                await reactMessage(userData.messageKey, "❌");
+                return;
+            }
+
+            const transcript = (await transcribeAudio(media)).trim();
+            if (!transcript) {
+                await sendMessage({
+                    phone: userData.phoneNumber,
+                    message: AUDIO_NOT_UNDERSTOOD_MESSAGE,
+                });
+                await reactMessage(userData.messageKey, "❌");
+                return;
+            }
+            if (transcript.length > MAX_MESSAGE_LENGTH) {
+                await sendMessage({
+                    phone: userData.phoneNumber,
+                    message: TEXT_TOO_LONG_MESSAGE,
+                });
+                await reactMessage(userData.messageKey, "❌");
+                return;
+            }
+
+            await enqueueScheduledReminder({
+                userData,
+                message: transcript,
+                messageId: body.data.key.id,
+                decidedTarget: undefined,
+            });
+        } catch (error) {
+            console.error("[PROCESSOR] Audio failed:", error);
+            await sendMessage({
+                phone: userData.phoneNumber,
+                message: AUDIO_NOT_UNDERSTOOD_MESSAGE,
+            });
+            await reactMessage(userData.messageKey, "❌");
+        }
+    });
 }
 
 export async function processMessage(body: MessagePayload, userData: UserData) {
@@ -49,12 +200,17 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
 
     await reactMessage(userData.messageKey, "⏳");
 
+    if (isAudioInbound(body.data)) {
+        await processAudioReminder(body, userData);
+        return;
+    }
+
     const message = inboundMessageText(body.data);
-    if (message.length > 250) {
+    if (message.length > MAX_MESSAGE_LENGTH) {
         console.log("[PROCESSOR] ⚠ Message too long:", message.length);
         await sendMessage({
             phone: userData.phoneNumber,
-            message: "Infelizmente, não é possível enviar mensagens muito longas. Por favor, envie uma mensagem mais curta.",
+            message: TEXT_TOO_LONG_MESSAGE,
         });
         await reactMessage(userData.messageKey, "❌");
         return;
@@ -104,59 +260,15 @@ export async function processMessage(body: MessagePayload, userData: UserData) {
                 break;
 
             case "reminder": {
-                const creationLimit = await checkReminderCreationLimit(userData.phoneNumber);
-
-                if (!creationLimit.allowed) {
-                    const resetInHours = creationLimit.resetIn / (1000 * 60 * 60);
-                    await sendMessage({
-                        phone: userData.phoneNumber,
-                        message: RATE_LIMIT_EXCEEDED_MESSAGE(resetInHours, userData.phoneNumber),
-                    });
-                    await reactMessage(userData.messageKey, "❌");
+                if (await rejectIfOverQuota(userData)) {
                     return;
                 }
-
-                const target = await resolveReminderTarget(
-                    userData.phoneNumber,
+                await enqueueScheduledReminder({
+                    userData,
                     message,
-                    classified.target,
-                );
-                if (target.kind === "unknown_name") {
-                    await sendMessage({
-                        phone: userData.phoneNumber,
-                        message: reminderUnknownContactMessage(target.name),
-                    });
-                    await reactMessage(userData.messageKey, "❌");
-                    break;
-                }
-                let scheduleTarget: ScheduleReminderTarget | undefined;
-                if (target.kind === "contact") {
-                    const owner = await findUserByAnyPhone(target.ownerPhoneDigits);
-                    if (!owner) {
-                        await sendMessage({
-                            phone: userData.phoneNumber,
-                            message: reminderOwnerMissingMessage(target.nickname),
-                        });
-                        await reactMessage(userData.messageKey, "❌");
-                        break;
-                    }
-                    scheduleTarget = {
-                        ownerPhoneNumber: owner.phoneNumber,
-                        ownerNickname: target.nickname,
-                        creatorDisplayName: userData.name,
-                    };
-                }
-
-                // Keep ⏳ until scheduleReminder sets ✅/❌
-                enqueueReminder(() =>
-                    scheduleReminder({
-                        userData,
-                        message,
-                        messageId: body.data.key.id,
-                        target: scheduleTarget,
-                    }),
-                );
-
+                    messageId: body.data.key.id,
+                    decidedTarget: classified.target,
+                });
                 break;
             }
 

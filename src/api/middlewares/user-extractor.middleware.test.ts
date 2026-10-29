@@ -91,6 +91,55 @@ describe("isProcessableInbound", () => {
             ),
         ).toBe(false);
     });
+
+    it("accepts a private audio message", () => {
+        expect(
+            isProcessableInbound(
+                basePayload({
+                    message: {
+                        audioMessage: {
+                            mimetype: "audio/ogg; codecs=opus",
+                            seconds: 4,
+                            ptt: true,
+                        },
+                    },
+                    messageType: "audioMessage",
+                }),
+            ),
+        ).toBe(true);
+    });
+
+    it("rejects audio from the bot", () => {
+        expect(
+            isProcessableInbound(
+                basePayload({
+                    key: {
+                        remoteJid: "553198296801@s.whatsapp.net",
+                        fromMe: true,
+                        id: "wamid.1",
+                    },
+                    message: { audioMessage: { seconds: 4, ptt: true } },
+                    messageType: "audioMessage",
+                }),
+            ),
+        ).toBe(false);
+    });
+
+    it("rejects group audio", () => {
+        expect(
+            isProcessableInbound(
+                basePayload({
+                    key: {
+                        remoteJid: "120363@g.us",
+                        fromMe: false,
+                        id: "wamid.1",
+                    },
+                    message: { audioMessage: { seconds: 4, ptt: true } },
+                    messageType: "audioMessage",
+                }),
+            ),
+        ).toBe(false);
+    });
 });
 
 describe("extractUserData", () => {
@@ -138,6 +187,53 @@ describe("extractUserData", () => {
                 fromMe: true,
                 id: "wamid.1",
             },
+        });
+
+        const res = await app.request("/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+
+        expect(res.status).toBe(204);
+        expect(mockFindOrCreateUser).not.toHaveBeenCalled();
+    });
+
+    it("accepts an audio message and creates the user", async () => {
+        const payload = basePayload({
+            message: {
+                audioMessage: {
+                    mimetype: "audio/ogg; codecs=opus",
+                    seconds: 4,
+                    ptt: true,
+                },
+            },
+            messageType: "audioMessage",
+        });
+
+        const res = await app.request("/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+
+        expect(res.status).toBe(200);
+        expect(mockFindOrCreateUser).toHaveBeenCalledWith(
+            "553198296801@s.whatsapp.net",
+            "Victor",
+            undefined,
+        );
+    });
+
+    it("skips group audio", async () => {
+        const payload = basePayload({
+            key: {
+                remoteJid: "120363@g.us",
+                fromMe: false,
+                id: "wamid.1",
+            },
+            message: { audioMessage: { seconds: 4, ptt: true } },
+            messageType: "audioMessage",
         });
 
         const res = await app.request("/", {

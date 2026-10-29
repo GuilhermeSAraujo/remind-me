@@ -31,6 +31,17 @@ export function inboundLidJid(data: MessagePayload["data"]): string | undefined 
     return isLidJid(data.key.remoteJid) ? data.key.remoteJid : undefined;
 }
 
+export const MAX_AUDIO_SECONDS = 60;
+
+export function isAudioInbound(data: MessagePayload["data"]): boolean {
+    return data.messageType === "audioMessage";
+}
+
+export function inboundAudioSeconds(data: MessagePayload["data"]): number | undefined {
+    const seconds = data.message?.audioMessage?.seconds;
+    return typeof seconds === "number" && Number.isFinite(seconds) ? seconds : undefined;
+}
+
 function hasInboundText(data: MessagePayload["data"]): boolean {
     const type = data.messageType;
     if (type === "conversation") {
@@ -56,7 +67,7 @@ export function isProcessableInbound(payload: MessagePayload): boolean {
     if (data.key.fromMe) {
         return false;
     }
-    return hasInboundText(data);
+    return hasInboundText(data) || isAudioInbound(data);
 }
 
 export function inboundMessageText(data: MessagePayload["data"]): string {

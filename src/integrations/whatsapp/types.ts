@@ -25,8 +25,13 @@ export interface MessagePayload {
         key: { remoteJid: string; fromMe: boolean; id: string };
         text: string;
       };
+      audioMessage?: {
+        mimetype?: string;
+        seconds?: number;
+        ptt?: boolean;
+      };
     }
-    messageType: "conversation" | "extendedTextMessage" | "reactionMessage";
+    messageType: "conversation" | "extendedTextMessage" | "reactionMessage" | "audioMessage";
     contextInfo?: {
       // answered message id
       stanzaId: string;

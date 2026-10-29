@@ -19,6 +19,8 @@ const {
     mockFindUserByAnyPhone,
     mockClassifyMessage,
     mockFindAcceptedContactsForUser,
+    mockDownloadAudio,
+    mockTranscribeAudio,
 } = vi.hoisted(() => ({
     mockReactMessage: vi.fn(),
     mockSendMessage: vi.fn(),
@@ -35,6 +37,8 @@ const {
     mockFindUserByAnyPhone: vi.fn(),
     mockClassifyMessage: vi.fn(),
     mockFindAcceptedContactsForUser: vi.fn(),
+    mockDownloadAudio: vi.fn(),
+    mockTranscribeAudio: vi.fn(),
 }));
 
 vi.mock("./react-message", () => ({
@@ -111,7 +115,16 @@ vi.mock("../../domain/users/find-user-by-phone", () => ({
     findUserByAnyPhone: mockFindUserByAnyPhone,
 }));
 
+vi.mock("./download-media", () => ({
+    downloadAudio: mockDownloadAudio,
+}));
+
+vi.mock("../ai/transcribe-audio", () => ({
+    transcribeAudio: mockTranscribeAudio,
+}));
+
 import { processMessage } from "./message-processor";
+import { deleteReminder } from "../../domain/reminders/delete";
 import { scheduleReminder } from "../../domain/reminders/schedule";
 
 const userData: UserData = {
@@ -609,6 +622,160 @@ describe("processMessage – reminder target and quota", () => {
 
         expect(mockCheckReminderCreationLimit).toHaveBeenCalledWith(userData.phoneNumber);
         expect(mockEnqueueReminder).not.toHaveBeenCalled();
+        expect(mockSendMessage).toHaveBeenCalledWith({
+            phone: userData.phoneNumber,
+            message: expect.stringContaining("24 horas"),
+        });
+        expect(mockReactMessage).toHaveBeenCalledWith(userData.messageKey, "❌");
+    });
+});
+
+describe("processMessage – audio creates a reminder only", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockReactMessage.mockResolvedValue(true);
+        mockSendMessage.mockResolvedValue(true);
+        mockSendMessages.mockResolvedValue(true);
+        mockFindPendingByInviteMessageId.mockResolvedValue(null);
+        mockFindLatestPendingForInvitee.mockResolvedValue(null);
+        mockCheckReminderCreationLimit.mockResolvedValue({
+            allowed: true,
+            remaining: 3,
+            resetIn: 0,
+            isPremium: false,
+        });
+        mockResolveReminderTarget.mockResolvedValue({ kind: "self" });
+        mockFindUserByAnyPhone.mockResolvedValue(null);
+        mockFindAcceptedContactsForUser.mockResolvedValue([]);
+        mockDownloadAudio.mockResolvedValue({ base64: "AAAA", mimeType: "audio/ogg" });
+        mockTranscribeAudio.mockResolvedValue("me lembre de ir no mercado amanhã 18h");
+    });
+
+    function audioPayload(seconds?: number): MessagePayload {
+        return {
+            event: "messages.upsert",
+            data: {
+                key: {
+                    remoteJid: userData.messageKey.remoteJid,
+                    fromMe: false,
+                    id: userData.messageId,
+                },
+                pushName: userData.name,
+                status: "DELIVERY_ACK",
+                message: {
+                    audioMessage: {
+                        mimetype: "audio/ogg; codecs=opus",
+                        ptt: true,
+                        ...(seconds !== undefined ? { seconds } : {}),
+                    },
+                },
+                messageType: "audioMessage",
+            },
+        };
+    }
+
+    async function runQueuedJobs() {
+        let ran = 0;
+        while (ran < mockEnqueueReminder.mock.calls.length) {
+            const job = mockEnqueueReminder.mock.calls[ran]![0] as () => Promise<void>;
+            ran += 1;
+            await job();
+        }
+    }
+
+    it("transcribes audio and enqueues scheduleReminder without classifying intent", async () => {
+        await processMessage(audioPayload(8), userData);
+        await runQueuedJobs();
+
+        expect(mockClassifyMessage).not.toHaveBeenCalled();
+        expect(mockDownloadAudio).toHaveBeenCalledWith(userData.messageId);
+        expect(mockTranscribeAudio).toHaveBeenCalledWith({
+            base64: "AAAA",
+            mimeType: "audio/ogg",
+        });
+        expect(mockResolveReminderTarget).toHaveBeenCalledWith(
+            userData.phoneNumber,
+            "me lembre de ir no mercado amanhã 18h",
+            undefined,
+        );
+        expect(scheduleReminder).toHaveBeenCalledWith({
+            userData,
+            message: "me lembre de ir no mercado amanhã 18h",
+            messageId: userData.messageId,
+            target: undefined,
+        });
+        expect(mockReactMessage).toHaveBeenCalledWith(userData.messageKey, "⏳");
+    });
+
+    it("still creates a reminder when the audio says to delete", async () => {
+        mockTranscribeAudio.mockResolvedValue("apagar 2");
+
+        await processMessage(audioPayload(3), userData);
+        await runQueuedJobs();
+
+        expect(mockClassifyMessage).not.toHaveBeenCalled();
+        expect(deleteReminder).not.toHaveBeenCalled();
+        expect(scheduleReminder).toHaveBeenCalledWith(
+            expect.objectContaining({ message: "apagar 2" }),
+        );
+    });
+
+    it("does not enqueue when the audio is longer than 60 seconds", async () => {
+        await processMessage(audioPayload(61), userData);
+
+        expect(mockEnqueueReminder).not.toHaveBeenCalled();
+        expect(mockDownloadAudio).not.toHaveBeenCalled();
+        expect(mockSendMessage).toHaveBeenCalledWith({
+            phone: userData.phoneNumber,
+            message: expect.stringContaining("áudios muito longos"),
+        });
+        expect(mockReactMessage).toHaveBeenCalledWith(userData.messageKey, "❌");
+    });
+
+    it("does not schedule a reminder when the audio cannot be downloaded", async () => {
+        mockDownloadAudio.mockResolvedValue(null);
+
+        await processMessage(audioPayload(4), userData);
+        await runQueuedJobs();
+
+        expect(scheduleReminder).not.toHaveBeenCalled();
+        expect(mockEnqueueReminder).toHaveBeenCalledOnce();
+        expect(mockSendMessage).toHaveBeenCalledWith({
+            phone: userData.phoneNumber,
+            message: expect.stringContaining("Não consegui ouvir o áudio"),
+        });
+        expect(mockReactMessage).toHaveBeenCalledWith(userData.messageKey, "❌");
+    });
+
+    it("does not schedule when the transcript is empty", async () => {
+        mockTranscribeAudio.mockResolvedValue("   ");
+        mockFindLatestPendingForInvitee.mockResolvedValue(pendingContact());
+
+        await processMessage(audioPayload(4), userData);
+        await runQueuedJobs();
+
+        expect(scheduleReminder).not.toHaveBeenCalled();
+        expect(mockApplyInviteDecision).not.toHaveBeenCalled();
+        expect(mockClassifyMessage).not.toHaveBeenCalled();
+        expect(mockSendMessage).toHaveBeenCalledWith({
+            phone: userData.phoneNumber,
+            message: expect.stringContaining("Não consegui entender o áudio"),
+        });
+        expect(mockReactMessage).toHaveBeenCalledWith(userData.messageKey, "❌");
+    });
+
+    it("sends the daily limit message and does not enqueue when quota is exhausted", async () => {
+        mockCheckReminderCreationLimit.mockResolvedValue({
+            allowed: false,
+            remaining: 0,
+            resetIn: 60 * 60 * 1000,
+            isPremium: false,
+        });
+
+        await processMessage(audioPayload(4), userData);
+
+        expect(mockEnqueueReminder).not.toHaveBeenCalled();
+        expect(mockDownloadAudio).not.toHaveBeenCalled();
         expect(mockSendMessage).toHaveBeenCalledWith({
             phone: userData.phoneNumber,
             message: expect.stringContaining("24 horas"),
